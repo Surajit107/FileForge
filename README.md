@@ -441,7 +441,7 @@ The image also installs **LibreOffice** (`libreoffice-writer`) for `docx → pdf
 | Port 8000 busy | `python main.py runserver 8001` |
 | Upload rejected | Use a `.md` file; check upload limits in `.env` |
 | Stale files | `python main.py purge_expired_jobs` |
-| CSRF 403 / “Origin checking failed” | Set `ALLOWED_HOSTS` to your domain (e.g. `fileforge.asteriq.in`) and redeploy. Or set `CSRF_TRUSTED_ORIGINS=https://your.domain` |
+| CSRF 403 / “Origin checking failed” | On the host, set `DJANGO_SETTINGS_MODULE=config.settings.production`, `DEBUG=False`, `ALLOWED_HOSTS=fileforge.asteriq.in`, and **`CSRF_TRUSTED_ORIGINS=https://fileforge.asteriq.in`**, then redeploy. Origin must be a full `https://…` URL, not a bare hostname. |
 | `docx → pdf` fails locally | Expected — LibreOffice is not part of local setup. Use Docker/server for this pair |
 | `docx → pdf` fails on server | Rebuild/redeploy the Docker image so LibreOffice is installed |
 

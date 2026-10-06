@@ -5,6 +5,8 @@ __pycache__/
 .venv/
 venv/
 .env
+.env.*
+!.env.example
 # uv.lock is committed (reproducible installs)
 # machine-local uv config must NOT live in this repo
 
