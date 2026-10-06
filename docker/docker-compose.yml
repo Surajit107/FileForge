@@ -12,12 +12,22 @@ services:
       DATABASE_URL: postgres://fileforge:fileforge@db:5432/fileforge
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CACHE_URL: redis://redis:6379/1
+      MEDIA_ROOT: /var/fileforge/media
+      MEDIA_URL: ""
       CONVERSION_SYNC_ENABLED: "False"
       ALLOWED_HOSTS: localhost,127.0.0.1,web
       CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000
       SECURE_SSL_REDIRECT: "False"
+      USE_X_FORWARDED_FOR: "True"
     volumes:
-      - media_data:/app/media
+      - media_data:/var/fileforge/media
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    cpus: 1.0
     depends_on:
       - db
       - redis
@@ -26,7 +36,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    command: celery -A config worker -l info
+    entrypoint: ["/app/docker/entrypoint-worker.sh"]
+    command: celery -A config worker -l info --concurrency=2
     env_file:
       - ../.env
     environment:
@@ -34,9 +45,24 @@ services:
       DATABASE_URL: postgres://fileforge:fileforge@db:5432/fileforge
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CACHE_URL: redis://redis:6379/1
+      MEDIA_ROOT: /var/fileforge/media
+      MEDIA_URL: ""
       CONVERSION_SYNC_ENABLED: "False"
     volumes:
-      - media_data:/app/media
+      - media_data:/var/fileforge/media
+    # Conversion sandbox: least privilege + resource caps for LibreOffice/ffmpeg.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+      - /home/appuser:size=64m,mode=1777
+    mem_limit: 2g
+    cpus: 2.0
+    pids_limit: 256
     depends_on:
       - db
       - redis
@@ -45,6 +71,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    entrypoint: ["/app/docker/entrypoint-worker.sh"]
     command: celery -A config beat -l info
     env_file:
       - ../.env
@@ -53,14 +80,32 @@ services:
       DATABASE_URL: postgres://fileforge:fileforge@db:5432/fileforge
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CACHE_URL: redis://redis:6379/1
+      MEDIA_ROOT: /var/fileforge/media
+      MEDIA_URL: ""
+    volumes:
+      - media_data:/var/fileforge/media
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
+    cpus: 0.5
     depends_on:
       - redis
       - db
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # Internal-only — do not publish to the host.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis_data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 300m
 
   db:
     image: postgres:16-alpine
@@ -70,7 +115,19 @@ services:
       POSTGRES_PASSWORD: fileforge
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # Internal-only — do not publish to the host.
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETUID
+      - SETGID
+    mem_limit: 512m
 
 volumes:
   postgres_data:
   media_data:
+  redis_data:

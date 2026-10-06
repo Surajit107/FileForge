@@ -18,9 +18,16 @@ class RateLimitExceeded(Exception):
 
 
 def client_ip(request: HttpRequest) -> str:
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip() or "unknown"
+    """Resolve client IP.
+
+    Only honor ``X-Forwarded-For`` when the deployment explicitly trusts a
+    reverse proxy (``USE_X_FORWARDED_FOR``). Otherwise REMOTE_ADDR alone —
+    spoofable headers must not bypass rate limits on a direct expose.
+    """
+    if getattr(settings, "USE_X_FORWARDED_FOR", False):
+        forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+        if forwarded:
+            return forwarded.split(",")[0].strip() or "unknown"
     return request.META.get("REMOTE_ADDR") or "unknown"
 
 
@@ -34,21 +41,21 @@ def check_conversion_rate_limit(request: HttpRequest) -> None:
     ip = client_ip(request)
     key = f"ff:convert-rate:{ip}"
     now = int(time.time())
-    entry = cache.get(key)
 
-    if not entry or not isinstance(entry, dict):
-        cache.set(key, {"count": 1, "started": now}, timeout=window)
+    # Atomic-ish increment via cache.add + incr when backend supports it.
+    added = cache.add(key, 1, timeout=window)
+    if added:
         return
 
-    started = int(entry.get("started", now))
-    count = int(entry.get("count", 0))
-    elapsed = now - started
-    if elapsed >= window:
-        cache.set(key, {"count": 1, "started": now}, timeout=window)
+    try:
+        count = cache.incr(key)
+    except ValueError:
+        # Key expired between add and incr, or backend without incr semantics.
+        cache.set(key, 1, timeout=window)
         return
 
-    if count >= limit:
-        raise RateLimitExceeded(window - elapsed)
-
-    entry["count"] = count + 1
-    cache.set(key, entry, timeout=max(1, window - elapsed))
+    if count > limit:
+        # Approximate retry-after: full window (we don't store started_at with incr).
+        ttl = cache.ttl(key) if hasattr(cache, "ttl") else None
+        retry_after = int(ttl) if isinstance(ttl, int) and ttl > 0 else window
+        raise RateLimitExceeded(retry_after)

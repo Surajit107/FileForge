@@ -17,9 +17,12 @@ from django.utils import timezone
 
 from apps.converter.exceptions import InvalidUploadError, JobNotReadyError
 from apps.converter.models import ConversionBatch, ConversionJob
+from apps.converter.services.filenames import sanitize_display_name, storage_object_name
+from apps.converter.services.limits import enforce_content_limits
 from apps.converter.services.scan import scan_upload
 from engines.exceptions import EngineError, UnsupportedConversionError
 from engines.registry import (
+    ALLOWED_SOURCE_EXTENSIONS,
     convert_file,
     detect_format_from_filename,
     get_pair,
@@ -29,35 +32,65 @@ from engines.sniff import sniff_format
 
 logger = logging.getLogger(__name__)
 
+_OUTPUT_EXTENSIONS: dict[str, str] = {
+    "tgz": "tar.gz",
+}
+
+
+def output_filename(original_name: str, target_format: str) -> str:
+    """Build a download filename, preserving compound stems like ``archive.tar.gz``."""
+    name = sanitize_display_name(original_name)
+    lower = name.lower()
+    stem = name
+    for suffix in (".tar.gz", ".tgz"):
+        if lower.endswith(suffix):
+            stem = name[: -len(suffix)]
+            break
+    else:
+        stem = Path(name).stem
+    extension = _OUTPUT_EXTENSIONS.get(target_format, target_format)
+    return sanitize_display_name(f"{stem}.{extension}")
+
+
+def _extension_allowed(filename: str) -> bool:
+    name = Path(filename).name.lower()
+    if name.endswith(".tar.gz"):
+        return "gz" in ALLOWED_SOURCE_EXTENSIONS or "tgz" in ALLOWED_SOURCE_EXTENSIONS
+    suffix = Path(name).suffix.lstrip(".")
+    return bool(suffix) and suffix in ALLOWED_SOURCE_EXTENSIONS
+
 
 def _detect_source_format(uploaded: UploadedFile) -> str:
+    if not _extension_allowed(uploaded.name or ""):
+        raise InvalidUploadError(supported_upload_message())
+
     declared = detect_format_from_filename(uploaded.name)
     if not declared:
         raise InvalidUploadError(supported_upload_message())
 
     # Persist a temp copy for sniffing (UploadedFile may be in-memory).
-    suffix = Path(uploaded.name).suffix
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+    suffix = Path(sanitize_display_name(uploaded.name)).suffix
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix or ".bin") as tmp:
         for chunk in uploaded.chunks():
             tmp.write(chunk)
         tmp_path = Path(tmp.name)
 
     try:
         sniffed = sniff_format(tmp_path, declared_filename=uploaded.name)
+        if sniffed is None:
+            raise InvalidUploadError(
+                "File content does not match a supported type."
+            )
+        if sniffed != declared:
+            raise InvalidUploadError(
+                f"File extension suggests {declared}, but content looks like {sniffed}."
+            )
+        enforce_content_limits(tmp_path, sniffed)
         scan_upload(tmp_path)
     finally:
         tmp_path.unlink(missing_ok=True)
         uploaded.seek(0)
 
-    if sniffed is None:
-        raise InvalidUploadError(
-            "File content does not match a supported document or image type."
-        )
-
-    if sniffed != declared:
-        raise InvalidUploadError(
-            f"File extension suggests {declared}, but content looks like {sniffed}."
-        )
     return sniffed
 
 
@@ -68,15 +101,22 @@ def create_job(
     owner_session_key: str,
     batch: ConversionBatch | None = None,
 ) -> ConversionJob:
+    # Byte cap before sniff / archive member enumeration (zip-bomb DoS).
+    if uploaded.size > settings.CONVERSION_MAX_UPLOAD_BYTES:
+        max_mb = settings.CONVERSION_MAX_UPLOAD_BYTES // (1024 * 1024)
+        raise InvalidUploadError(f"File exceeds the {max_mb} MB upload limit.")
+
     source_format = _detect_source_format(uploaded)
 
     try:
-        get_pair(source_format, target_format)
+        pair = get_pair(source_format, target_format)
     except UnsupportedConversionError as exc:
         raise InvalidUploadError(str(exc)) from exc
 
-    if uploaded.size > settings.CONVERSION_MAX_UPLOAD_BYTES:
-        max_mb = settings.CONVERSION_MAX_UPLOAD_BYTES // (1024 * 1024)
+    # Per-pair limit (media/archives may allow more) capped by global setting.
+    limit_bytes = min(pair.max_bytes, settings.CONVERSION_MAX_UPLOAD_BYTES)
+    if uploaded.size > limit_bytes:
+        max_mb = limit_bytes // (1024 * 1024)
         raise InvalidUploadError(f"File exceeds the {max_mb} MB upload limit.")
 
     if not owner_session_key:
@@ -88,16 +128,21 @@ def create_job(
         else timezone.now() + settings.CONVERSION_JOB_TTL
     )
 
+    display_name = sanitize_display_name(uploaded.name or "upload.bin")
     job = ConversionJob(
         owner_session_key=owner_session_key,
         batch=batch,
-        original_name=Path(uploaded.name).name,
+        original_name=display_name,
         source_format=source_format,
         target_format=target_format,
         status=ConversionJob.Status.PENDING,
         expires_at=expires_at,
     )
-    job.input_file.save(Path(uploaded.name).name, uploaded, save=False)
+    job.input_file.save(
+        storage_object_name(display_name, format_hint=source_format),
+        uploaded,
+        save=False,
+    )
     job.save()
     logger.info(
         "conversion_job_created job_id=%s source=%s target=%s batch_id=%s",
@@ -117,7 +162,7 @@ def run_job(job: ConversionJob) -> ConversionJob:
     logger.info("conversion_job_processing job_id=%s", job.id)
 
     source_path = Path(job.input_file.path)
-    output_name = f"{Path(job.original_name).stem}.{job.target_format}"
+    output_name = output_filename(job.original_name, job.target_format)
     temp_output = (
         Path(settings.MEDIA_ROOT)
         / settings.CONVERSION_OUTPUT_SUBDIR

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from django.core.exceptions import ImproperlyConfigured
 
 from .base import *  # noqa: F403
@@ -82,3 +84,35 @@ X_FRAME_OPTIONS = "DENY"
 SESSION_COOKIE_HTTPONLY = True
 
 CONVERSION_SYNC_ENABLED = env.bool("CONVERSION_SYNC_ENABLED", default=False)
+
+# Never expose MEDIA via URL in production — downloads go through signed views.
+MEDIA_URL = ""
+MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(BASE_DIR / "media")))  # noqa: F405
+
+# Shared cache for rate limits across Gunicorn workers.
+# Redis is optional: set CACHE_URL (or a real CELERY_BROKER_URL) when you add
+# a Railway Redis plugin. Sync-only deploys fall back to LocMem (per-process).
+_prod_cache = env("CACHE_URL", default="")
+if not _prod_cache:
+    _broker = env("CELERY_BROKER_URL", default="")
+    # Ignore the local default — Railway has no redis on 127.0.0.1.
+    if _broker and "127.0.0.1" not in _broker and "localhost" not in _broker:
+        _prod_cache = _broker
+
+if _prod_cache:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _prod_cache,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "fileforge-prod",
+        }
+    }
+
+# Trust X-Forwarded-For only behind a known reverse proxy.
+USE_X_FORWARDED_FOR = env.bool("USE_X_FORWARDED_FOR", default=True)

@@ -2,16 +2,27 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from django import forms
 from django.conf import settings
 
 from engines.registry import (
+    ALLOWED_SOURCE_EXTENSIONS,
     accept_attribute,
     detect_format_from_filename,
     list_sources,
     supported_upload_message,
     targets_for,
 )
+
+
+def _extension_allowed(filename: str) -> bool:
+    name = Path(filename).name.lower()
+    if name.endswith(".tar.gz"):
+        return "gz" in ALLOWED_SOURCE_EXTENSIONS or "tgz" in ALLOWED_SOURCE_EXTENSIONS
+    suffix = Path(name).suffix.lstrip(".")
+    return bool(suffix) and suffix in ALLOWED_SOURCE_EXTENSIONS
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -92,6 +103,9 @@ class ConversionForm(forms.Form):
             if item.size > max_bytes:
                 max_mb = max_bytes // (1024 * 1024)
                 errors.append(f"{item.name} exceeds the {max_mb} MB upload limit.")
+                continue
+            if not _extension_allowed(item.name or ""):
+                errors.append(f"{item.name}: {supported_upload_message()}")
                 continue
             source = detect_format_from_filename(item.name)
             if source is None:

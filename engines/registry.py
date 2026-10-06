@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from engines.archive import build_archive_engines
 from engines.base import ConversionEngine, ConversionPair
 from engines.document import (
     DocxToMarkdownEngine,
@@ -24,13 +25,29 @@ from engines.markdown import (
     MarkdownToPdfEngine,
     MarkdownToTxtEngine,
 )
+from engines.media import build_media_engines
+from engines.slides import PptxToPdfEngine
+from engines.spreadsheet import build_spreadsheet_engines
 
 _ENGINES: dict[tuple[str, str], ConversionEngine] = {}
 _PAIRS: dict[tuple[str, str], ConversionPair] = {}
 
 DOCUMENT_SOURCES: frozenset[str] = frozenset({"md", "docx", "pdf"})
 IMAGE_SOURCES: frozenset[str] = frozenset({"png", "jpg", "webp", "gif", "bmp"})
-REGISTERED_SOURCES: frozenset[str] = DOCUMENT_SOURCES | IMAGE_SOURCES
+SPREADSHEET_SOURCES: frozenset[str] = frozenset({"csv", "xlsx"})
+SLIDE_SOURCES: frozenset[str] = frozenset({"pptx"})
+ARCHIVE_SOURCES: frozenset[str] = frozenset({"zip", "tar", "tgz", "7z"})
+AUDIO_SOURCES: frozenset[str] = frozenset({"mp3", "wav", "flac", "ogg"})
+VIDEO_SOURCES: frozenset[str] = frozenset({"mp4", "webm", "mkv"})
+MEDIA_SOURCES: frozenset[str] = AUDIO_SOURCES | VIDEO_SOURCES
+REGISTERED_SOURCES: frozenset[str] = (
+    DOCUMENT_SOURCES
+    | IMAGE_SOURCES
+    | SPREADSHEET_SOURCES
+    | SLIDE_SOURCES
+    | ARCHIVE_SOURCES
+    | MEDIA_SOURCES
+)
 
 ALLOWED_SOURCE_EXTENSIONS: frozenset[str] = frozenset(
     {
@@ -46,6 +63,21 @@ ALLOWED_SOURCE_EXTENSIONS: frozenset[str] = frozenset(
         "webp",
         "gif",
         "bmp",
+        "csv",
+        "xlsx",
+        "pptx",
+        "zip",
+        "tar",
+        "tgz",
+        "gz",
+        "7z",
+        "mp3",
+        "wav",
+        "flac",
+        "ogg",
+        "mp4",
+        "webm",
+        "mkv",
     }
 )
 
@@ -60,6 +92,21 @@ _ACCEPT_EXTENSIONS: tuple[str, ...] = (
     ".webp",
     ".gif",
     ".bmp",
+    ".csv",
+    ".xlsx",
+    ".pptx",
+    ".zip",
+    ".tar",
+    ".tgz",
+    ".tar.gz",
+    ".7z",
+    ".mp3",
+    ".wav",
+    ".flac",
+    ".ogg",
+    ".mp4",
+    ".webm",
+    ".mkv",
 )
 
 
@@ -71,7 +118,9 @@ def accept_attribute() -> str:
 def supported_upload_message() -> str:
     return (
         "Unsupported file type. Currently accepts Markdown (.md), DOCX, PDF, "
-        "or images (PNG, JPG, WEBP, GIF, BMP)."
+        "images (PNG, JPG, WEBP, GIF, BMP), CSV, XLSX, PPTX, archives "
+        "(ZIP, TAR, TAR.GZ, 7Z), audio (MP3, WAV, FLAC, OGG), or video "
+        "(MP4, WEBM, MKV)."
     )
 
 
@@ -161,6 +210,58 @@ def _bootstrap() -> None:
             engine,
         )
 
+    for source, target, label, engine in build_spreadsheet_engines():
+        _register(
+            ConversionPair(
+                source=source,
+                target=target,
+                label=label,
+                category="spreadsheets",
+                best_effort=target == "pdf",
+            ),
+            engine,
+        )
+
+    _register(
+        ConversionPair(
+            source="pptx",
+            target="pdf",
+            label="PDF",
+            category="slides",
+            best_effort=True,
+        ),
+        PptxToPdfEngine(),
+    )
+
+    for source, target, label, engine in build_archive_engines():
+        _register(
+            ConversionPair(
+                source=source,
+                target=target,
+                label=label,
+                category="archives",
+                best_effort=source == "7z" or target == "7z",
+                max_bytes=50 * 1024 * 1024,
+                timeout_sec=180,
+            ),
+            engine,
+        )
+
+    for source, target, label, engine, max_bytes, timeout_sec in build_media_engines():
+        category = "audio" if source in AUDIO_SOURCES else "video"
+        _register(
+            ConversionPair(
+                source=source,
+                target=target,
+                label=label,
+                category=category,
+                best_effort=True,
+                max_bytes=max_bytes,
+                timeout_sec=timeout_sec,
+            ),
+            engine,
+        )
+
 
 def list_pairs() -> list[ConversionPair]:
     _bootstrap()
@@ -216,11 +317,17 @@ def normalize_format(value: str) -> str:
         "text": "txt",
         "jpeg": "jpg",
         "htm": "html",
+        "tar.gz": "tgz",
+        "gz": "tgz",
     }
     return aliases.get(cleaned, cleaned)
 
 
 def detect_format_from_filename(filename: str) -> str | None:
+    name = Path(filename).name.lower()
+    if name.endswith(".tar.gz") or name.endswith(".tgz"):
+        return "tgz"
+
     suffix = Path(filename).suffix.lower().lstrip(".")
     if not suffix:
         return None

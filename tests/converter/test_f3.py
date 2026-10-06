@@ -49,7 +49,14 @@ class ImageAndBatchTests(TestCase):
         job = ConversionJob.objects.get()
         self.assertEqual(job.source_format, "png")
         self.assertEqual(job.target_format, "jpg")
-        download = self.client.get(reverse("converter:download", args=[job.id]))
+        self.assertTrue(body["job"]["download_url"])
+        self.assertIn("token=", body["job"]["download_url"])
+        # Unsigned path must fail even for the owner.
+        self.assertEqual(
+            self.client.get(reverse("converter:download", args=[job.id])).status_code,
+            404,
+        )
+        download = self.client.get(body["job"]["download_url"])
         self.assertEqual(download.status_code, 200)
         self.assertTrue(download.headers["Content-Disposition"].endswith('.jpg"'))
 
@@ -94,11 +101,18 @@ class ImageAndBatchTests(TestCase):
         batch = ConversionBatch.objects.get()
         self.assertEqual(batch.jobs.count(), 2)
         self.assertTrue(batch.zip_file)
-        download = self.client.get(reverse("converter:batch_download", args=[batch.id]))
+        download_url = body["job"]["download_url"]
+        self.assertTrue(download_url)
+        self.assertIn("token=", download_url)
+        download = self.client.get(download_url)
         self.assertEqual(download.status_code, 200)
         self.assertIn(".zip", download.headers["Content-Disposition"])
 
         stranger = Client()
+        self.assertEqual(
+            stranger.get(download_url).status_code,
+            404,
+        )
         self.assertEqual(
             stranger.get(reverse("converter:batch_download", args=[batch.id])).status_code,
             404,

@@ -121,9 +121,9 @@ Grow **by category**, not random one-off formats.
 | Images | png, jpg, webp, gif, bmp, tiff → pdf | F3 | Pillow / ImageMagick |
 | Spreadsheets | csv, xlsx → pdf | F4 | openpyxl + LibreOffice |
 | Slides | pptx → pdf | F4 | LibreOffice |
-| Archives | zip, tar, 7z (pack/unpack) | F5 | system tools |
-| Audio | mp3, wav, flac, ogg | F6 | ffmpeg |
-| Video | mp4, webm, mkv (transcode) | F6 | ffmpeg |
+| Archives | zip, tar, 7z (pack/unpack) | F5 conversions | zipfile / tarfile / 7z |
+| Audio | mp3, wav, flac, ogg | F6 conversions | ffmpeg |
+| Video | mp4, webm, mkv (transcode) | F6 conversions | ffmpeg |
 | E-books | epub ↔ pdf (optional) | F7 | calibre/ebook-convert |
 | CAD / RAW / Fonts | **out of personal scope** unless you truly need them | — | — |
 
@@ -137,8 +137,8 @@ Grow **by category**, not random one-off formats.
 | Images | `.png` / `.jpg` / `.webp` / `.pdf` | F3 |
 | `.csv` / `.xlsx` | `.csv` / `.xlsx` / `.pdf` | F4 |
 | `.pptx` | `.pdf` | F4 |
-| Archives | unpack / list | F5 |
-| Audio / Video | via ffmpeg | F6 |
+| Archives | zip ↔ tar ↔ tgz ↔ 7z | F5 conversions |
+| Audio / Video | via ffmpeg (+ video→audio extract) | F6 conversions |
 
 Rule: if a pair is not in the registry, the dropdown must not offer it. The homepage never claims formats the registry does not have.
 
@@ -174,14 +174,14 @@ Do **not** promise “perfect round-trip” (`md → pdf → md` identical). Tha
 
 Deliverables:
 
-- [ ] Final product name (working: FileForge)
-- [ ] MVP conversion pairs: `md → pdf`, `md → docx`
-- [ ] Max upload size (suggest **25 MB** MVP; raise per category later)
-- [ ] Retention policy (suggest **24h** then delete — ephemeral processing)
-- [ ] Audience: **personal / private first** (single-user or LAN), public SaaS later optional
-- [ ] Auth decision for MVP: open local use vs simple password gate
-- [ ] Explicit non-goals for v1: audio/video/CAD/ebooks
-- [ ] Local Docker path planned even if F1 runs bare metal
+- [x] Final product name (working: FileForge)
+- [x] MVP conversion pairs: `md → pdf`, `md → docx`
+- [x] Max upload size (**100 MB** default global; per-pair caps: docs 25 / archives 50 / media 100)
+- [x] Retention policy (suggest **24h** then delete — ephemeral processing)
+- [x] Audience: **personal / private first** (single-user or LAN), public SaaS later optional
+- [x] Auth decision for MVP: open local use vs simple password gate
+- [x] Explicit non-goals for v1: audio/video/CAD/ebooks
+- [x] Local Docker path planned even if F1 runs bare metal
 
 Exit criteria: written decisions above approved.
 
@@ -193,17 +193,17 @@ Exit criteria: written decisions above approved.
 
 Features:
 
-- [ ] Django project + `converter` app
-- [ ] Upload page (drag-drop + file picker)
-- [ ] Target format dropdown: `PDF`, `DOCX` (only when source is Markdown)
-- [ ] Sync conversion for small files (acceptable only in F1)
-- [ ] Download converted file
-- [ ] Basic validation: extension, size, MIME sniff
-- [ ] Flash/toast errors for unsupported files
+- [x] Django project + `converter` app
+- [x] Upload page (drag-drop + file picker)
+- [x] Target format dropdown: `PDF`, `DOCX` (only when source is Markdown)
+- [x] Sync conversion for small files (acceptable only in F1)
+- [x] Download converted file
+- [x] Basic validation: extension, size, MIME sniff
+- [x] Flash/toast errors for unsupported files
 - [x] Markdown pipeline in `engines/markdown/` + CLI in `scripts/md_converter.py`
-- [ ] Local media storage + `.gitignore` for uploads
-- [ ] `requirements.txt` / `pyproject` with pinned deps
-- [ ] README: run locally (`migrate`, `runserver`)
+- [x] Local media storage + `.gitignore` for uploads
+- [x] `requirements.txt` / `pyproject` with pinned deps
+- [x] README: run locally (`migrate`, `runserver`)
 
 Models (minimal):
 
@@ -303,8 +303,8 @@ Features:
 
 - [ ] Auth (email/password or social login)
 - [ ] Per-user history, quotas, storage usage
-- [ ] Spreadsheet conversions (`csv ↔ xlsx`, export `pdf`)
-- [ ] `pptx → pdf` (again: LibreOffice dependency)
+- [x] Spreadsheet conversions (`csv ↔ xlsx`, export `pdf`)
+- [x] `pptx → pdf` (again: LibreOffice dependency)
 - [ ] API keys for programmatic conversion (`POST /api/v1/convert`)
 - [ ] Webhook callback on job completion
 - [ ] Stripe/LemonSqueezy billing skeleton (free tier + paid quota)
@@ -314,14 +314,19 @@ Exit criteria:
 - Logged-in users get history + quotas.
 - External clients can convert via API.
 
+**Progress note:** conversion pairs (spreadsheets + slides) shipped first; accounts/API/billing deferred.
+
 ---
 
 ### F5 — Production Platform
 
 **Goal:** deployable, observable, scalable service.
 
+**Progress note:** archive **conversion pairs** shipped first (zip/tar/tgz/7z); platform items below remain deferred.
+
 Features:
 
+- [x] Archive conversions (`zip` ↔ `tar` ↔ `tgz` ↔ `7z`; 7z needs `7z`/`p7zip`)
 - [ ] Docker Compose (web + worker + redis + db)
 - [ ] Postgres (replace SQLite)
 - [ ] Object storage (S3/MinIO) for inputs/outputs
@@ -342,8 +347,10 @@ Exit criteria:
 
 ### F6 — Nice-to-Haves / Differentiators (Optional)
 
-Only after F1–F5 are real:
+**Progress note:** media **conversion pairs** shipped first (ffmpeg audio/video + video→audio); polish items below remain deferred. Only after F1–F5 platform are real for the rest:
 
+- [x] Audio conversions (`mp3` / `wav` / `flac` / `ogg`, non-identity)
+- [x] Video transcode (`mp4` / `webm` / `mkv`) + extract audio (`→ mp3` / `wav`)
 - [ ] OCR (`image/pdf → searchable text/pdf`)
 - [ ] Watermarking / branding on outputs
 - [ ] Template-based Markdown themes (corporate PDF skins)
@@ -407,17 +414,31 @@ Adding a format later = add one engine + one registry entry.
 
 ## Security Checklist (Non-Negotiable)
 
-- [ ] Allowlist extensions + MIME sniffing
-- [ ] Max upload size + max pages/pixels for documents/images
-- [ ] Store uploads outside web root / private storage
-- [ ] Never execute uploaded files
-- [ ] Sanitize filenames
-- [ ] Time-limited download links
-- [ ] Rate limits
-- [ ] CSRF on form posts; auth tokens on API
-- [ ] Worker runs with least privilege
-- [ ] LibreOffice/conversions in sandbox/container if used
+- [x] Allowlist extensions + MIME sniffing
+- [x] Max upload size + max pages/pixels for documents/images
+- [x] Store uploads outside web root / private storage
+- [x] Never execute uploaded files
+- [x] Sanitize filenames
+- [x] Time-limited download links
+- [x] Rate limits
+- [x] CSRF on form posts; auth tokens on API
+- [x] Worker runs with least privilege
+- [x] LibreOffice/conversions in sandbox/container if used
 
+**Implementation notes (security hardening pass):**
+
+| Control | How |
+|---------|-----|
+| Allowlist + sniff | `ALLOWED_SOURCE_EXTENSIONS` enforced in form + `create_job`; magic-byte sniff in `engines/sniff.py`; declared↔sniffed must match; no invented `md` from extensionless text |
+| Size / pages / pixels | Global + per-pair byte caps; `CONVERSION_MAX_PDF_PAGES` (default 200); `CONVERSION_MAX_IMAGE_PIXELS` (default 40M) + Pillow `MAX_IMAGE_PIXELS` |
+| Private storage | `MEDIA_URL=""` by default; downloads only via app views; Docker volume at `/var/fileforge/media` (outside repo tree) |
+| Never execute uploads | Fixed-argv subprocesses only (`soffice`/`ffmpeg`/`7z`/`clamscan`); downloads forced `as_attachment` + `application/octet-stream` |
+| Sanitize filenames | `sanitize_display_name` for DB/UI; opaque `{uuid}{ext}` on disk via `storage_object_name` |
+| Time-limited downloads | Session ownership **and** `TimestampSigner` token (`?token=`); TTL bound to job `expires_at` |
+| Rate limits | Cache-backed IP throttle; production uses Redis (`CACHE_URL`); `X-Forwarded-For` only when `USE_X_FORWARDED_FOR=True` |
+| CSRF / API auth | Django CSRF middleware + form token; mutating API keys deferred to F4 accounts — session binds jobs today |
+| Worker least privilege | Non-root `appuser`; Compose `cap_drop: ALL`, `no-new-privileges`, mem/CPU/pids limits; Redis/Postgres not published to host |
+| LO sandbox | Conversions in hardened worker container (`read_only` rootfs, tmpfs scratch, isolated LO profile); not host-privileged |
 ---
 
 ## Tech Stack Recommendation
@@ -507,12 +528,16 @@ No F2/F3 work until that loop is demoable end-to-end.
 | Framework | Django 5 + split settings | Done (scaffolded) |
 | Layout | `apps/` + `engines/` + `config/` | Done |
 | MVP pairs | `md→pdf`, `md→docx` | Done (F1) |
-| MVP auth | Local/personal; optional password gate | Proposed |
+| MVP auth | Open local use; password gate deferred | Done (F0) |
 | Frontend | Django templates + Tailwind CSS v4 | Done (F1 UI polish) |
 | Queue | Celery + Redis (sync fallback for local/dev) | Done (F2) |
 | Images + batch + rate limit | Pillow engines, ConversionBatch ZIP, IP throttle, optional ClamAV hook | Done (F3) |
-| Storage | Local media → MinIO/S3 in F5 | Proposed |
-| Media (audio/video) | F6 via ffmpeg, not MVP | Proposed |
+| F4 office conversions | csv↔xlsx (openpyxl); csv/xlsx/pptx→pdf (LibreOffice Calc/Impress); accounts/API deferred | Done (F4 conversions) |
+| F5 archive conversions | zip↔tar↔tgz↔7z (stdlib + optional 7-Zip); platform (Postgres/MinIO/Compose) deferred | Done (F5 conversions) |
+| F6 media conversions | ffmpeg audio/video + video→audio; OCR/preview/SDK deferred | Done (F6 conversions) |
+| Security checklist | Allowlist+sniff, page/pixel caps, private MEDIA, UUID disk names, signed download tokens, Redis rate-limit cache, hardened Compose worker | Done |
+| Storage | Local private media (signed downloads); MinIO/S3 still F5 platform | In progress |
+| Media (audio/video) | F6 conversions via ffmpeg | Done |
 | Full commercial catalog day-1 | **No** | Locked |
 
 Update this table when decisions are finalized.

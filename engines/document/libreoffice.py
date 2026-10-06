@@ -1,8 +1,8 @@
 """LibreOffice headless conversion helper.
 
-``docx → pdf`` requires LibreOffice. The Docker image installs it for server
-deploys; local Windows is expected to fail this pair unless LibreOffice is
-installed separately.
+Office → PDF pairs (docx / xlsx / csv / pptx) require LibreOffice. The Docker
+image installs Writer, Calc, and Impress for server deploys; local Windows is
+expected to fail these pairs unless LibreOffice is installed separately.
 """
 
 from __future__ import annotations

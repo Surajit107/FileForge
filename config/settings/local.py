@@ -21,3 +21,7 @@ STORAGES["staticfiles"] = {  # noqa: F405
 # Override with CONVERSION_SYNC_ENABLED=False in .env for true async.
 if "CONVERSION_SYNC_ENABLED" not in os.environ:
     CONVERSION_SYNC_ENABLED = True
+
+# Dev convenience: allow MEDIA_URL only when explicitly set (default is private).
+if "MEDIA_URL" not in os.environ:
+    MEDIA_URL = ""
