@@ -68,7 +68,7 @@
   }
 
   .site-frame {
-    @apply relative z-10 mx-auto flex w-full max-w-6xl flex-col px-4 pb-6 pt-5 sm:px-6 sm:pb-8 sm:pt-7 md:px-7 lg:px-8;
+    @apply relative z-10 mx-auto flex w-full max-w-7xl flex-col px-4 pb-6 pt-5 sm:px-6 sm:pb-8 sm:pt-7 md:px-7 lg:px-8;
     min-height: 100svh;
     padding-left: max(1rem, env(safe-area-inset-left));
     padding-right: max(1rem, env(safe-area-inset-right));
@@ -130,11 +130,135 @@
   }
 
   .convert-layout {
-    @apply grid gap-5 sm:gap-6 md:grid-cols-[minmax(0,1.3fr)_minmax(14rem,0.85fr)] md:items-start md:gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(16rem,0.9fr)] lg:gap-8;
+    @apply grid gap-5 sm:gap-6;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .convert-layout__aside {
-    @apply border-t border-line pt-5 md:border-l md:border-t-0 md:pl-6 md:pt-0 lg:pl-8;
+  @media (min-width: 768px) {
+    .convert-layout {
+      grid-template-columns: minmax(0, 1.5fr) minmax(15rem, 0.95fr);
+      grid-template-areas:
+        "form stage"
+        "catalog catalog";
+      align-items: stretch;
+      column-gap: 1.75rem;
+      row-gap: 1.5rem;
+    }
+
+    .convert-layout__form {
+      grid-area: form;
+      min-width: 0;
+    }
+
+    .convert-layout__stage {
+      grid-area: stage;
+    }
+
+    .convert-layout__catalog {
+      grid-area: catalog;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .convert-layout {
+      grid-template-columns: minmax(0, 1.55fr) minmax(17rem, 1fr);
+      column-gap: 2rem;
+      row-gap: 1.75rem;
+    }
+  }
+
+  .convert-layout__stage {
+    @apply grid content-start border-t border-line pt-5 md:border-l md:border-t-0 md:pl-6 md:pt-0 lg:pl-8;
+  }
+
+  .convert-layout__catalog {
+    @apply border-t border-line pt-5 sm:pt-6;
+  }
+
+  .pair-catalog__head {
+    @apply mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4;
+  }
+
+  .pair-catalog__title {
+    @apply m-0 font-display text-base font-bold tracking-tight text-ink sm:text-lg;
+  }
+
+  .pair-catalog__lead {
+    @apply m-0 text-sm text-mist;
+  }
+
+  .pair-ribbon__stack {
+    @apply grid gap-1 overflow-hidden rounded-xl border border-line py-1;
+    background: linear-gradient(180deg, rgb(26 26 26 / 0.45) 0%, rgb(10 10 10 / 0.75) 100%);
+  }
+
+  .pair-ribbon__viewport {
+    @apply relative overflow-hidden;
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      #000 6%,
+      #000 94%,
+      transparent 100%
+    );
+  }
+
+  .pair-ribbon__track {
+    @apply flex w-max items-center gap-0;
+    will-change: transform;
+  }
+
+  .pair-ribbon__seq {
+    @apply flex shrink-0 items-center gap-2 px-2 py-2.5;
+  }
+
+  .pair-ribbon__chip {
+    @apply inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-sm text-ink-soft;
+    background: linear-gradient(180deg, rgb(26 26 26 / 0.7) 0%, rgb(17 17 17 / 0.95) 100%);
+  }
+
+  .pair-ribbon__chip code {
+    @apply rounded-md bg-paper px-1.5 py-0.5 font-mono text-[0.78rem] font-semibold text-ink;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  }
+
+  .pair-ribbon__arrow {
+    @apply text-mist;
+  }
+
+  .pair-ribbon__hint {
+    @apply rounded px-1.5 py-0.5 text-[0.58rem] font-semibold uppercase tracking-wide text-warn;
+    background: rgb(251 191 36 / 0.1);
+  }
+
+  html.js-motion:not(.reduce-motion) .pair-ribbon__track--left {
+    animation: pair-ribbon-left 55s linear infinite;
+  }
+
+  html.js-motion:not(.reduce-motion) .pair-ribbon__track--right {
+    animation: pair-ribbon-right 65s linear infinite;
+  }
+
+  html.js-motion:not(.reduce-motion) .pair-ribbon__viewport:hover .pair-ribbon__track {
+    animation-play-state: paused;
+  }
+
+  @keyframes pair-ribbon-left {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-50%, 0, 0);
+    }
+  }
+
+  @keyframes pair-ribbon-right {
+    from {
+      transform: translate3d(-50%, 0, 0);
+    }
+    to {
+      transform: translate3d(0, 0, 0);
+    }
   }
 
   .convert-converting {
@@ -211,6 +335,22 @@
     @apply relative overflow-hidden rounded-xl border border-line px-2.5 py-2.5 sm:px-3 sm:py-3;
     background: linear-gradient(180deg, rgb(26 26 26 / 0.7) 0%, rgb(10 10 10 / 0.9) 100%);
     transition: box-shadow 0.35s ease, border-color 0.35s ease;
+  }
+
+  .job-pair--stage {
+    @apply w-full px-3.5 py-4 sm:px-4 sm:py-5;
+  }
+
+  .job-pair--stage .job-pair__badge {
+    @apply min-w-[3.75rem] px-2.5 py-2 sm:min-w-[4.25rem] sm:px-3 sm:py-2.5;
+  }
+
+  .job-pair--stage .job-pair__ext {
+    @apply text-base sm:text-lg;
+  }
+
+  .job-pair--stage .job-pair__status {
+    @apply mt-3;
   }
 
   .job-pair.is-converting {
@@ -937,6 +1077,10 @@
     @apply relative;
   }
 
+  .format-picker.is-open {
+    @apply z-30;
+  }
+
   .format-picker__native {
     @apply pointer-events-none absolute h-px w-px overflow-hidden opacity-0;
     clip: rect(0, 0, 0, 0);
@@ -978,7 +1122,7 @@
   }
 
   .format-picker__panel {
-    @apply relative mt-2 overflow-hidden rounded-xl border border-line;
+    @apply absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-line;
     background: #1a1a1a;
     box-shadow:
       0 18px 40px -18px rgb(0 0 0 / 0.75),
@@ -1051,30 +1195,6 @@
   .pair-chip code {
     @apply rounded-md bg-paper px-1.5 py-0.5 font-mono text-[0.8rem] font-semibold text-ink;
     box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
-  }
-
-  .pair-list {
-    @apply m-0 grid list-none gap-0 border-y border-line p-0;
-  }
-
-  .pair-list__item {
-    @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-line px-0 py-2.5 last:border-b-0;
-    background: transparent;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  .pair-list__item.pair-chip {
-    @apply rounded-none border-x-0 border-t-0 bg-transparent px-0;
-    box-shadow: none;
-  }
-
-  .pair-list__route {
-    @apply inline-flex items-center gap-2 text-sm text-ink-soft;
-  }
-
-  .pair-list__hint {
-    @apply shrink-0 text-[0.65rem] font-semibold uppercase tracking-wide text-warn;
   }
 
   .history-panel {
@@ -1394,7 +1514,7 @@ html.js-motion:not(.reduce-motion) .history-panel > .page-kicker,
 html.js-motion:not(.reduce-motion) .history-panel > h1,
 html.js-motion:not(.reduce-motion) .history-panel > .page-lead,
 html.js-motion:not(.reduce-motion) .message,
-html.js-motion:not(.reduce-motion) .pair-list__item,
+html.js-motion:not(.reduce-motion) .pair-ribbon__stack,
 html.js-motion:not(.reduce-motion) .history-row,
 html.js-motion:not(.reduce-motion) .job-panel .job-meta,
 html.js-motion:not(.reduce-motion) #convert-form > *,
@@ -1431,8 +1551,28 @@ html.js-motion:not(.reduce-motion) .ambient-orb {
   .job-pair.is-converting .convert-stage__morph-card,
   .job-pair.is-converting .convert-stage__morph-ring,
   .job-pair.is-converting .job-pair__progress-fill,
-  .job-pair.is-converting .job-pair__progress-sheen {
+  .job-pair.is-converting .job-pair__progress-sheen,
+  .pair-ribbon__track--left,
+  .pair-ribbon__track--right {
     animation: none !important;
+  }
+
+  .pair-ribbon__viewport {
+    mask-image: none;
+    overflow: visible;
+  }
+
+  .pair-ribbon__track {
+    @apply w-full flex-wrap justify-center;
+    transform: none !important;
+  }
+
+  .pair-ribbon__seq + .pair-ribbon__seq {
+    display: none;
+  }
+
+  .pair-ribbon__viewport + .pair-ribbon__viewport {
+    display: none;
   }
 
   .dropzone,

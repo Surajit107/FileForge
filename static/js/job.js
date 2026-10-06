@@ -1,18 +1,23 @@
 (() => {
   const motion = window.FileForgeMotion;
   const canAnimate = () => Boolean(motion && !motion.reduceMotion);
-  const terminal = new Set(["done", "failed"]);
+  const terminal = new Set(["done", "failed", "partial"]);
 
   const statusToneClass = (status) => {
-    if (status === "done") return "is-ok";
+    if (status === "done" || status === "partial") return "is-ok";
     if (status === "failed") return "is-danger";
     return "is-warn";
   };
 
-  const headingFor = (status) => {
-    if (status === "done") return "Your file is ready";
+  const headingFor = (status, kind) => {
+    const plural = kind === "batch";
+    if (status === "done" || status === "partial") {
+      return plural ? "Your files are ready" : "Your file is ready";
+    }
     if (status === "failed") return "Conversion failed";
-    if (status === "processing" || status === "pending") return "Converting your file";
+    if (status === "processing" || status === "pending") {
+      return plural ? "Converting your files" : "Converting your file";
+    }
     return "Conversion result";
   };
 
@@ -20,11 +25,18 @@
     const name = data.original_name || "Your file";
     const source = (data.source_format || "").toUpperCase();
     const target = (data.target_format || "").toUpperCase();
-    if (data.status === "done") {
+    const isBatch = data.kind === "batch";
+    if (data.status === "done" || data.status === "partial") {
+      if (isBatch && target) return `${name} → ${target} (ZIP)`;
       return target ? `${name} → ${target}` : name;
     }
     if (data.status === "failed") {
-      return `We couldn’t finish converting ${name}.`;
+      return isBatch
+        ? "We couldn’t finish converting this batch."
+        : `We couldn’t finish converting ${name}.`;
+    }
+    if (isBatch && target) {
+      return `${name} · → ${target}`;
     }
     if (source && target) {
       return `${name} · ${source} → ${target}`;
@@ -55,6 +67,7 @@
     const paintSteps = (status) => {
       const order = ["pending", "processing", "done"];
       let activeIndex = order.indexOf(status);
+      if (status === "partial") activeIndex = 2;
       if (status === "failed") activeIndex = 1;
 
       steps.forEach((step) => {
@@ -64,14 +77,15 @@
 
         // Done = all complete (success). Never paint Ready as ember-active —
         // that competed with the download CTA.
+        const finished = status === "done" || status === "partial";
         const isComplete =
-          status === "done"
+          finished
             ? stepIndex <= activeIndex
             : stepIndex < activeIndex && status !== "failed";
         const isActive =
           status === "failed"
             ? stepName === "processing"
-            : status !== "done" && stepIndex === activeIndex;
+            : !finished && stepIndex === activeIndex;
         const isFailed = status === "failed" && stepName === "processing";
 
         step.classList.toggle("is-complete", isComplete);
@@ -117,7 +131,9 @@
       const statusEl = panel.querySelector("[data-convert-stage] [data-stage-status]");
       if (!statusEl) return;
       statusEl.textContent =
-        status === "done" ? "Conversion complete" : "Conversion stopped";
+        status === "done" || status === "partial"
+          ? "Conversion complete"
+          : "Conversion stopped";
     };
 
     const apply = (data) => {
@@ -138,7 +154,7 @@
       }
 
       if (headingEl) {
-        headingEl.textContent = headingFor(data.status);
+        headingEl.textContent = headingFor(data.status, data.kind);
       }
       if (leadEl) {
         leadEl.textContent = leadFor(data);
@@ -159,8 +175,13 @@
       paintSteps(data.status);
 
       if (errorEl) {
-        const failed = data.status === "failed";
-        if (failed) {
+        const failed = data.status === "failed" || data.status === "partial";
+        if (failed && data.error_message) {
+          errorEl.textContent = data.error_message;
+          if (errorEl.classList.contains("hidden")) {
+            revealError();
+          }
+        } else if (data.status === "failed") {
           errorEl.textContent = data.error_message || "Conversion failed.";
           if (errorEl.classList.contains("hidden")) {
             revealError();
@@ -175,7 +196,10 @@
         if (ready) {
           downloadLink.href = data.download_url;
           if (downloadLabel) {
-            downloadLabel.textContent = `Download ${(data.target_format || "").toUpperCase()}`;
+            downloadLabel.textContent =
+              data.kind === "batch"
+                ? "Download ZIP"
+                : `Download ${(data.target_format || "").toUpperCase()}`;
           }
           revealDownload();
         } else {

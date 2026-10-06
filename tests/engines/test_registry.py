@@ -12,7 +12,7 @@ class RegistryTests(SimpleTestCase):
     def test_md_pairs_registered(self):
         targets = {pair.target for pair in targets_for("md")}
         self.assertEqual(targets, {"pdf", "docx", "html", "txt"})
-        self.assertGreaterEqual(len(list_pairs()), 8)
+        self.assertGreaterEqual(len(list_pairs()), 20)
 
     def test_docx_and_pdf_pairs_registered(self):
         self.assertEqual(

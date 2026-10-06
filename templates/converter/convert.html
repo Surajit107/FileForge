@@ -14,7 +14,7 @@
         Convert a file
       </h1>
       <p class="page-lead mt-1.5 text-sm text-mist sm:text-base">
-        Upload a source file, choose an output format, download the result.
+        Upload one or more files, choose an output format, download the result (ZIP for batches).
       </p>
 
       <form
@@ -34,8 +34,8 @@
                 <path class="icon__tray" d="M4 16.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
               </svg>
             </span>
-            <span class="text-base font-semibold text-ink">Drop a file here</span>
-            <span class="text-sm text-mist">or click to browse · .md, .docx, .pdf</span>
+            <span class="text-base font-semibold text-ink">Drop files here</span>
+            <span class="text-sm text-mist">or click to browse · docs + images · up to 10 files</span>
           </label>
           {{ form.source_file }}
           {% if form.source_file.errors %}
@@ -158,12 +158,11 @@
       </form>
     </section>
 
-    <aside class="convert-layout__aside" aria-labelledby="supported-heading">
+    <aside class="convert-layout__stage" aria-label="Format preview">
       <div
-        class="job-pair"
+        class="job-pair job-pair--stage"
         data-convert-stage
         data-mode="idle"
-        aria-label="Format preview"
       >
         <div class="job-pair__track" aria-hidden="true">
           <div class="job-pair__glow" data-stage-glow></div>
@@ -179,30 +178,70 @@
         </div>
         <p class="job-pair__status" data-stage-status>Formats transform continuously</p>
       </div>
-
-      <h2 id="supported-heading" class="mt-6 font-display text-base font-bold tracking-tight text-ink sm:text-lg">
-        Supported conversions
-      </h2>
-      <p class="mt-1 text-sm text-mist">
-        Available source → target pairs for this build.
-      </p>
-      <ul class="pair-list mt-4">
-        {% for pair in pairs %}
-          <li class="pair-list__item pair-chip">
-            <span class="pair-list__route">
-              <code>{{ pair.source }}</code>
-              <span class="text-mist" aria-hidden="true">→</span>
-              <code>{{ pair.target }}</code>
-            </span>
-            {% if pair.best_effort %}
-              <span class="pair-list__hint">best effort</span>
-            {% endif %}
-          </li>
-        {% empty %}
-          <li class="text-sm text-mist">No conversion pairs registered.</li>
-        {% endfor %}
-      </ul>
     </aside>
+
+    <section class="convert-layout__catalog pair-ribbon" aria-labelledby="supported-heading">
+      <header class="pair-catalog__head">
+        <h2 id="supported-heading" class="pair-catalog__title">
+          Supported conversions
+        </h2>
+        <p class="pair-catalog__lead">
+          {{ pairs|length }} source → target pairs in this build — informational only.
+        </p>
+      </header>
+
+      {% if pairs %}
+        <ul class="sr-only">
+          {% for pair in pairs %}
+            <li>
+              {{ pair.source }} to {{ pair.target }}{% if pair.best_effort %} (best effort){% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+
+        <div class="pair-ribbon__stack" aria-hidden="true">
+          <div class="pair-ribbon__viewport">
+            <div class="pair-ribbon__track pair-ribbon__track--left">
+              {% for _ in "12" %}
+                <div class="pair-ribbon__seq">
+                  {% for pair in pairs %}
+                    <span class="pair-ribbon__chip">
+                      <code>{{ pair.source }}</code>
+                      <span class="pair-ribbon__arrow">→</span>
+                      <code>{{ pair.target }}</code>
+                      {% if pair.best_effort %}
+                        <span class="pair-ribbon__hint">best effort</span>
+                      {% endif %}
+                    </span>
+                  {% endfor %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="pair-ribbon__viewport">
+            <div class="pair-ribbon__track pair-ribbon__track--right">
+              {% for _ in "12" %}
+                <div class="pair-ribbon__seq">
+                  {% for pair in pairs reversed %}
+                    <span class="pair-ribbon__chip">
+                      <code>{{ pair.source }}</code>
+                      <span class="pair-ribbon__arrow">→</span>
+                      <code>{{ pair.target }}</code>
+                      {% if pair.best_effort %}
+                        <span class="pair-ribbon__hint">best effort</span>
+                      {% endif %}
+                    </span>
+                  {% endfor %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <p class="text-sm text-mist">No conversion pairs registered.</p>
+      {% endif %}
+    </section>
   </div>
 
   <section
