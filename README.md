@@ -30,6 +30,8 @@ Source of truth for Python deps: `pyproject.toml` + `uv.lock`.
 uv export --no-hashes --no-emit-project -o requirements/local.txt
 uv export --no-hashes --no-emit-project -o requirements/base.txt
 uv export --no-hashes --no-emit-project --group prod -o requirements/production.txt
+# Root file must stay self-contained (no nested -r) for Railway Railpack:
+uv export --no-hashes --no-emit-project --group prod -o requirements.txt
 ```
 
 ---

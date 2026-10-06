@@ -69,6 +69,7 @@
     /** @type {Array<{pause?: Function, cancel?: Function, revert?: Function}>} */
     const loops = [];
     let pairTimer = 0;
+    let progressRaf = 0;
 
     const setPair = (source, target) => {
       sourceExt.textContent = source;
@@ -87,27 +88,89 @@
       stream.appendChild(track);
     }
 
-    const particleCount = converting ? 8 : 4;
-    const existingParticles = [...stream.querySelectorAll(".convert-stage__particle")];
-    existingParticles.forEach((node) => node.remove());
-
-    const rebuildParticles = (count, sparkEvery = 0) => {
+    const clearParticles = () => {
       [...stream.querySelectorAll(".convert-stage__particle")].forEach((node) =>
         node.remove()
       );
+    };
+
+    const rebuildParticles = (count) => {
+      clearParticles();
       return Array.from({ length: count }, (_, index) => {
         const node = document.createElement("span");
         node.className = "convert-stage__particle";
-        if (sparkEvery && index % sparkEvery === 1) {
-          node.classList.add("is-spark");
-        }
         node.style.setProperty("--i", String(index));
         stream.appendChild(node);
         return node;
       });
     };
 
-    let particles = rebuildParticles(particleCount);
+    const clearMorph = () => {
+      stream.querySelector(".convert-stage__morph")?.remove();
+    };
+
+    const clearProgress = () => {
+      root.querySelector("[data-stage-progress]")?.remove();
+    };
+
+    const ensureMorph = () => {
+      clearParticles();
+      let morph = stream.querySelector(".convert-stage__morph");
+      if (!morph) {
+        morph = document.createElement("span");
+        morph.className = "convert-stage__morph";
+        morph.setAttribute("aria-hidden", "true");
+        morph.innerHTML = `
+          <span class="convert-stage__morph-ring"></span>
+          <span class="convert-stage__morph-card">
+            <span class="convert-stage__morph-face is-from" data-morph-from></span>
+            <span class="convert-stage__morph-face is-to" data-morph-to></span>
+          </span>
+        `;
+        stream.appendChild(morph);
+      }
+
+      const from = morph.querySelector("[data-morph-from]");
+      const to = morph.querySelector("[data-morph-to]");
+      if (from) from.textContent = sourceExt.textContent || "—";
+      if (to) to.textContent = targetExt.textContent || "—";
+      return morph;
+    };
+
+    const ensureProgress = () => {
+      let progress = root.querySelector("[data-stage-progress]");
+      if (progress) return progress;
+
+      progress = document.createElement("div");
+      progress.className = "job-pair__progress";
+      progress.setAttribute("data-stage-progress", "");
+      progress.setAttribute("aria-hidden", "true");
+      progress.innerHTML = `
+        <div class="job-pair__progress-row">
+          <span class="job-pair__progress-track">
+            <span class="job-pair__progress-fill" data-progress-fill></span>
+            <span class="job-pair__progress-sheen" aria-hidden="true"></span>
+          </span>
+          <span class="job-pair__progress-pct" data-progress-pct>0%</span>
+        </div>
+      `;
+
+      if (status?.parentNode === root) {
+        root.insertBefore(progress, status);
+      } else {
+        root.appendChild(progress);
+      }
+      return progress;
+    };
+
+    const setProgressPct = (value) => {
+      const label = root.querySelector("[data-progress-pct]");
+      if (!label) return;
+      const clamped = Math.max(0, Math.min(99, Math.round(value)));
+      label.textContent = `${clamped}%`;
+    };
+
+    let particles = converting ? [] : rebuildParticles(4);
 
     const setStatus = (text) => {
       if (status) status.textContent = text;
@@ -117,6 +180,10 @@
       if (pairTimer) {
         window.clearInterval(pairTimer);
         pairTimer = 0;
+      }
+      if (progressRaf) {
+        window.cancelAnimationFrame(progressRaf);
+        progressRaf = 0;
       }
       while (loops.length) {
         const anim = loops.pop();
@@ -187,50 +254,6 @@
       });
     };
 
-    /** Converting: fast packet burst + sparks (active transfer). */
-    const animateConvertParticles = () => {
-      const travel = streamTravelPx(stream);
-      particles.forEach((particle, index) => {
-        const wave = 10 + (index % 3) * 5;
-        const duration = 480 + (index % 3) * 40;
-        const isSpark = particle.classList.contains("is-spark");
-        motion.utils.set(particle, {
-          opacity: 0,
-          translateX: 0,
-          translateY: 0,
-          scale: isSpark ? 0.35 : 0.55,
-          rotate: 0,
-        });
-        loops.push(
-          motion.animate(particle, {
-            opacity: [
-              { to: 0, duration: 0 },
-              { to: 1, duration: 50 },
-              { to: 1, duration: duration * 0.55 },
-              { to: 0, duration: 90 },
-            ],
-            translateX: [
-              { to: travel * 0.2, duration: duration * 0.2, ease: "outQuad" },
-              { to: travel, duration: duration * 0.8, ease: "inQuad" },
-            ],
-            translateY: [
-              { to: index % 2 === 0 ? -wave : wave, duration: duration * 0.35 },
-              { to: index % 2 === 0 ? wave * 0.7 : -wave * 0.7, duration: duration * 0.35 },
-              { to: 0, duration: duration * 0.3 },
-            ],
-            scale: [
-              { to: isSpark ? 1.1 : 1.45, duration: duration * 0.25 },
-              { to: isSpark ? 0.4 : 0.65, duration: duration * 0.75 },
-            ],
-            rotate: [{ to: index % 2 === 0 ? 180 : -180, duration }],
-            delay: index * 70,
-            ease: "linear",
-            loop: true,
-          })
-        );
-      });
-    };
-
     const flipCard = (card, direction) => {
       if (!card || !motion?.animate) return;
       motion.animate(card, {
@@ -251,6 +274,8 @@
 
       clearLoops();
       resetCards();
+      clearMorph();
+      clearProgress();
       root.classList.remove("is-converting");
       root.dataset.mode = "idle";
 
@@ -263,13 +288,8 @@
         if (glow) {
           motion.utils.set(glow, { opacity: 0.18, scale: 1, translateX: 0 });
         }
-        particles.forEach((particle) => {
-          motion.utils.set(particle, {
-            opacity: 0,
-            translateX: 0,
-            translateY: 0,
-          });
-        });
+        clearParticles();
+        particles = [];
         return;
       }
 
@@ -383,36 +403,50 @@
       converting = true;
       root.dataset.mode = "converting";
       root.classList.add("is-converting");
-      setStatus("Converting file…");
-
-      if (reduceMotion || !motion?.animate) return;
 
       clearLoops();
       resetCards();
-      particles = rebuildParticles(9, 2);
+      clearParticles();
+      particles = [];
+      ensureMorph();
+      const progress = ensureProgress();
+      const fill = progress.querySelector("[data-progress-fill]");
+      const track = progress.querySelector(".job-pair__progress-track");
+
+      const fromLabel = sourceExt.textContent || "—";
+      const toLabel = targetExt.textContent || "—";
+      setStatus(`Converting ${fromLabel} → ${toLabel}`);
+      setProgressPct(8);
+
+      const syncProgressLabel = () => {
+        if (!converting || !fill || !track) return;
+        const trackWidth = track.clientWidth || 1;
+        const fillWidth = fill.getBoundingClientRect().width;
+        setProgressPct((fillWidth / trackWidth) * 100);
+        progressRaf = window.requestAnimationFrame(syncProgressLabel);
+      };
+
+      if (reduceMotion || !motion?.animate) {
+        if (fill) fill.style.width = "42%";
+        setProgressPct(42);
+        return;
+      }
+
       await waitForLayout();
       if (!converting) return;
 
-      // Glow surges as an energy transfer node.
+      progressRaf = window.requestAnimationFrame(syncProgressLabel);
+
       if (glow) {
         loops.push(
           motion.animate(glow, {
             opacity: [
-              { to: 0.95, duration: 240 },
-              { to: 0.4, duration: 280 },
-              { to: 0.9, duration: 240 },
-              { to: 0.5, duration: 260 },
+              { to: 0.4, duration: 1600 },
+              { to: 0.22, duration: 1600 },
             ],
             scale: [
-              { to: 1.55, duration: 300 },
-              { to: 0.85, duration: 280 },
-              { to: 1.4, duration: 300 },
-              { to: 1.05, duration: 260 },
-            ],
-            translateX: [
-              { to: -16, duration: 420 },
-              { to: 18, duration: 420 },
-              { to: 0, duration: 360 },
+              { to: 1.06, duration: 1600 },
+              { to: 0.94, duration: 1600 },
             ],
             ease: "inOutSine",
             loop: true,
@@ -420,66 +454,40 @@
         );
       }
 
-      // Source: compress → push packets into the stream.
       if (sourceCard) {
         loops.push(
           motion.animate(sourceCard, {
-            translateX: [
-              { to: -2, duration: 180 },
-              { to: 6, duration: 160 },
-              { to: 0, duration: 200 },
+            opacity: [
+              { to: 1, duration: 1100 },
+              { to: 0.5, duration: 1100 },
             ],
-            scaleX: [
-              { to: 0.9, duration: 180 },
-              { to: 1.06, duration: 160 },
-              { to: 1, duration: 200 },
+            scale: [
+              { to: 1, duration: 1100 },
+              { to: 0.96, duration: 1100 },
             ],
-            scaleY: [
-              { to: 1.08, duration: 180 },
-              { to: 0.94, duration: 160 },
-              { to: 1, duration: 200 },
-            ],
-            rotate: [
-              { to: -3, duration: 180 },
-              { to: 1, duration: 160 },
-              { to: 0, duration: 200 },
-            ],
-            ease: "inOutQuad",
+            ease: "inOutSine",
             loop: true,
           })
         );
       }
 
-      // Target: receive impact → settle.
       if (targetCard) {
         loops.push(
           motion.animate(targetCard, {
-            translateX: [
-              { to: 0, duration: 120 },
-              { to: 7, duration: 140 },
-              { to: -2, duration: 160 },
-              { to: 0, duration: 180 },
+            opacity: [
+              { to: 0.55, duration: 1100 },
+              { to: 1, duration: 1100 },
             ],
             scale: [
-              { to: 1, duration: 120 },
-              { to: 1.1, duration: 140 },
-              { to: 0.96, duration: 160 },
-              { to: 1, duration: 180 },
+              { to: 0.96, duration: 1100 },
+              { to: 1.03, duration: 1100 },
             ],
-            rotate: [
-              { to: 0, duration: 120 },
-              { to: 4, duration: 140 },
-              { to: -1, duration: 160 },
-              { to: 0, duration: 180 },
-            ],
-            ease: "outBack(1.6)",
+            ease: "inOutSine",
             loop: true,
-            delay: 180,
+            delay: 80,
           })
         );
       }
-
-      animateConvertParticles();
     };
 
     const syncFormats = (source, target) => {
@@ -514,10 +522,16 @@
           runIdleLoop();
         } else {
           clearLoops();
+          clearMorph();
+          clearProgress();
         }
       },
       syncFormats,
-      destroy: clearLoops,
+      destroy: () => {
+        clearLoops();
+        clearMorph();
+        clearProgress();
+      },
       isVisible,
     };
 
