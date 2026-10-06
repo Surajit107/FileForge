@@ -4,7 +4,8 @@
   "private": true,
   "description": "FileForge frontend tooling (Tailwind CSS build).",
   "scripts": {
-    "quickstart": "uv sync && node -e \"const fs=require('fs');if(!fs.existsSync('.env'))fs.copyFileSync('.env.example','.env')\" && uv run python main.py migrate && uv run python main.py runserver",
+    "redis:up": "node scripts/ensure-redis.js",
+    "quickstart": "npm run redis:up && uv sync && node -e \"const fs=require('fs');if(!fs.existsSync('.env'))fs.copyFileSync('.env.example','.env')\" && uv run python main.py migrate && uv run python main.py runserver",
     "css:build": "npx @tailwindcss/cli -i ./static/src/input.css -o ./static/css/app.css --minify",
     "css:watch": "npx @tailwindcss/cli -i ./static/src/input.css -o ./static/css/app.css --watch"
   },
