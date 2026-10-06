@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Batch {{ batch.id }} — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+{% include "converter/partials/job_panel.html" with batch=batch progress=progress %}
+
+{% if jobs %}
+  <section class="mt-8" aria-labelledby="batch-files-heading">
+    <h2 id="batch-files-heading" class="font-display text-lg font-bold tracking-tight text-ink">
+      Files in this batch
+    </h2>
+    <ul class="pair-list mt-3">
+      {% for item in jobs %}
+        <li class="pair-list__item pair-chip">
+          <span class="pair-list__route">
+            <span>{{ item.original_name }}</span>
+            <span class="text-mist" aria-hidden="true">·</span>
+            <code>{{ item.source_format }} → {{ item.target_format }}</code>
+          </span>
+          <span class="pair-list__hint">{{ item.status }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/convert-stage.js' %}"></script>
+<script src="{% static 'js/job.js' %}"></script>
+{% endblock %}

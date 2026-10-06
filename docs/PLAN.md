@@ -277,16 +277,16 @@ Exit criteria:
 
 Features:
 
-- [ ] Image conversions via Pillow:
-  - png/jpg/webp/gif/bmp ↔ png/jpg/webp
+- [x] Image conversions via Pillow:
+  - png/jpg/webp/gif/bmp → png/jpg/webp (no identity pairs)
   - image → pdf
-- [ ] Batch upload (multiple files, same target format)
-- [ ] ZIP download for batch results
-- [ ] Rate limiting (IP / user)
-- [ ] Content-type verification beyond extension
-- [ ] Virus scanning hook (ClamAV optional)
-- [ ] Admin panel for failed jobs / metrics
-- [ ] Unit + integration tests for each registered pair
+- [x] Batch upload (multiple files, same target format)
+- [x] ZIP download for batch results
+- [x] Rate limiting (IP / user)
+- [x] Content-type verification beyond extension
+- [x] Virus scanning hook (ClamAV optional)
+- [x] Admin panel for failed jobs / metrics
+- [x] Unit + integration tests for each registered pair
 
 Exit criteria:
 
@@ -510,6 +510,7 @@ No F2/F3 work until that loop is demoable end-to-end.
 | MVP auth | Local/personal; optional password gate | Proposed |
 | Frontend | Django templates + Tailwind CSS v4 | Done (F1 UI polish) |
 | Queue | Celery + Redis (sync fallback for local/dev) | Done (F2) |
+| Images + batch + rate limit | Pillow engines, ConversionBatch ZIP, IP throttle, optional ClamAV hook | Done (F3) |
 | Storage | Local media → MinIO/S3 in F5 | Proposed |
 | Media (audio/video) | F6 via ffmpeg, not MVP | Proposed |
 | Full commercial catalog day-1 | **No** | Locked |

@@ -16,9 +16,15 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.converter.exceptions import InvalidUploadError, JobNotReadyError
-from apps.converter.models import ConversionJob
+from apps.converter.models import ConversionBatch, ConversionJob
+from apps.converter.services.scan import scan_upload
 from engines.exceptions import EngineError, UnsupportedConversionError
-from engines.registry import convert_file, detect_format_from_filename, get_pair
+from engines.registry import (
+    convert_file,
+    detect_format_from_filename,
+    get_pair,
+    supported_upload_message,
+)
 from engines.sniff import sniff_format
 
 logger = logging.getLogger(__name__)
@@ -27,9 +33,7 @@ logger = logging.getLogger(__name__)
 def _detect_source_format(uploaded: UploadedFile) -> str:
     declared = detect_format_from_filename(uploaded.name)
     if not declared:
-        raise InvalidUploadError(
-            "Unsupported file type. Currently accepts Markdown (.md), DOCX, or PDF."
-        )
+        raise InvalidUploadError(supported_upload_message())
 
     # Persist a temp copy for sniffing (UploadedFile may be in-memory).
     suffix = Path(uploaded.name).suffix
@@ -40,13 +44,14 @@ def _detect_source_format(uploaded: UploadedFile) -> str:
 
     try:
         sniffed = sniff_format(tmp_path, declared_filename=uploaded.name)
+        scan_upload(tmp_path)
     finally:
         tmp_path.unlink(missing_ok=True)
         uploaded.seek(0)
 
     if sniffed is None:
         raise InvalidUploadError(
-            "File content does not match a supported document type."
+            "File content does not match a supported document or image type."
         )
 
     if sniffed != declared:
@@ -61,6 +66,7 @@ def create_job(
     target_format: str,
     *,
     owner_session_key: str,
+    batch: ConversionBatch | None = None,
 ) -> ConversionJob:
     source_format = _detect_source_format(uploaded)
 
@@ -76,10 +82,15 @@ def create_job(
     if not owner_session_key:
         raise InvalidUploadError("Missing session ownership for conversion job.")
 
-    expires_at = timezone.now() + settings.CONVERSION_JOB_TTL
+    expires_at = (
+        batch.expires_at
+        if batch is not None
+        else timezone.now() + settings.CONVERSION_JOB_TTL
+    )
 
     job = ConversionJob(
         owner_session_key=owner_session_key,
+        batch=batch,
         original_name=Path(uploaded.name).name,
         source_format=source_format,
         target_format=target_format,
@@ -89,10 +100,11 @@ def create_job(
     job.input_file.save(Path(uploaded.name).name, uploaded, save=False)
     job.save()
     logger.info(
-        "conversion_job_created job_id=%s source=%s target=%s",
+        "conversion_job_created job_id=%s source=%s target=%s batch_id=%s",
         job.id,
         source_format,
         target_format,
+        batch.id if batch else "",
     )
     return job
 
@@ -146,6 +158,12 @@ def run_job(job: ConversionJob) -> ConversionJob:
                 "updated_at",
             ]
         )
+
+    if job.batch_id:
+        from apps.converter.services.batch import maybe_finalize_batch_for_job
+
+        maybe_finalize_batch_for_job(job)
+
     return job
 
 

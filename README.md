@@ -4,13 +4,16 @@ Personal online file converter built with **Django** and a framework-agnostic **
 
 Upload a file → choose an output format → download the result.
 
-**Currently supported (F2)**
+**Currently supported (F3)**
 
 | Source | Targets |
 |--------|---------|
 | Markdown (`.md`) | PDF, DOCX, HTML, TXT |
 | DOCX | PDF *(LibreOffice required)*, TXT, MD *(best effort)* |
 | PDF | TXT, MD *(best effort)*, DOCX *(best effort)* |
+| Images (`.png` `.jpg` `.webp` `.gif` `.bmp`) | PNG, JPG, WEBP, PDF *(no same-format identity pairs)* |
+
+Batch upload: select up to **10 files** (same target); download a **ZIP** when done.
 
 Roadmap: [docs/PLAN.md](docs/PLAN.md)
 
@@ -152,6 +155,8 @@ python main.py runserver
 
 `docx → pdf` requires LibreOffice (`soffice`). Local `uv`/Windows setup does **not** install it — that pair will fail locally. The Docker image installs LibreOffice so the pair works on the server after rebuild/redeploy.
 
+ClamAV (`clamscan`) is also installed in Docker only. Keep `CLAMAV_ENABLED=False` locally; set `CLAMAV_ENABLED=True` on the server when you want upload scanning.
+
 ---
 
 ## 1. Initialize the project (detailed)
@@ -271,7 +276,7 @@ Leave the terminal open while the server is running.
 ### 2.3 Use the convert UI
 
 1. Open http://127.0.0.1:8000/
-2. Drop or browse a Markdown file (example: `samples/Pronti_Deed_Exit_Risk_Table.md`)
+2. Drop or browse a file (Markdown example: `samples/Pronti_Deed_Exit_Risk_Table.md`, or any PNG/JPG/WEBP/GIF/BMP). Multi-select up to 10 files for a ZIP batch.
 3. Select **PDF** or **DOCX**
 4. Click **Convert**
 5. On the job page, click **Download**
@@ -427,7 +432,7 @@ docker compose -f docker/docker-compose.yml down
 
 Docker still installs from `requirements/production.txt` (exported from `uv.lock`). Re-export after changing deps.
 
-The image also installs **LibreOffice** (`libreoffice-writer`) for `docx → pdf`. Redeploy/rebuild after Dockerfile changes so the server picks it up.
+The image also installs **LibreOffice** (`libreoffice-writer`) for `docx → pdf`, **ClamAV** for optional upload scanning, and common image libs for Pillow. Redeploy/rebuild after Dockerfile changes so the server picks them up.
 
 ---
 
@@ -439,7 +444,7 @@ The image also installs **LibreOffice** (`libreoffice-writer`) for `docx → pdf
 | `uv` not found | Ensure `P:\Tools\uv` is on PATH; new terminal |
 | Config / secret errors | Compare your `.env` with `.env.example` |
 | Port 8000 busy | `python main.py runserver 8001` |
-| Upload rejected | Use a `.md` file; check upload limits in `.env` |
+| Upload rejected | Use a supported doc/image type; extension must match content; check upload/batch limits in `.env` |
 | Stale files | `python main.py purge_expired_jobs` |
 | CSRF 403 / “Origin checking failed” | On the host, set `DJANGO_SETTINGS_MODULE=config.settings.production`, `DEBUG=False`, `ALLOWED_HOSTS=fileforge.asteriq.in`, and **`CSRF_TRUSTED_ORIGINS=https://fileforge.asteriq.in`**, then redeploy. Origin must be a full `https://…` URL, not a bare hostname. |
 | `docx → pdf` fails locally | Expected — LibreOffice is not part of local setup. Use Docker/server for this pair |

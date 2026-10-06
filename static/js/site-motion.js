@@ -54,7 +54,7 @@
     "#view-form .page-lead, .job-panel > .page-lead, .history-panel > .page-lead"
   );
   const convertFields = document.querySelectorAll("#convert-form > *");
-  const pairItems = document.querySelectorAll(".pair-list__item");
+  const pairRibbon = document.querySelector(".pair-ribbon__stack");
   const supportedHeading = document.querySelector("#supported-heading");
   const supportedLead = document.querySelector("#supported-heading + p");
   const convertStages = document.querySelectorAll(
@@ -84,7 +84,7 @@
     ambientOrb,
     messages,
     convertFields,
-    pairItems,
+    pairRibbon,
     convertStages,
     metaBlocks,
     jobExtras,
@@ -401,18 +401,17 @@
     );
   }
 
-  if (pairItems.length) {
-    utils.set(pairItems, { opacity: 0, scale: 0.7, translateY: 12 });
+  if (pairRibbon) {
+    utils.set(pairRibbon, { opacity: 0, translateY: 16 });
     tl.add(
-      pairItems,
+      pairRibbon,
       {
         opacity: [0, 1],
-        scale: [0.7, 1.05, 1],
-        translateY: [12, 0],
-        duration: 520,
-        ease: "outBack(1.7)",
+        translateY: [16, 0],
+        duration: 640,
+        ease: "outCubic",
       },
-      stagger(45, { start: "-=260", from: "center" })
+      "-=300"
     );
   }
 

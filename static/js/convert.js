@@ -13,14 +13,18 @@
 
   let dragDepth = 0;
 
-  const showName = (file) => {
-    if (!fileName || !file) return;
-    fileName.textContent = file.name;
+  const selectedFiles = () => [...(fileInput.files || [])];
+
+  const showName = (files) => {
+    const list = Array.isArray(files) ? files : files ? [files] : selectedFiles();
+    if (!fileName || !list.length) return;
+    fileName.textContent =
+      list.length === 1 ? list[0].name : `${list.length} files selected`;
     fileName.classList.remove("hidden");
     if (canAnimate) {
       motion.settleIn(fileName);
     }
-    const source = file.name.includes(".") ? file.name.split(".").pop() : "";
+    const source = list[0].name.includes(".") ? list[0].name.split(".").pop() : "";
     const target = targetSelect?.value || "";
     if (source && target) {
       window.FileForgeConvertStage?.syncFormats?.(source, target);
@@ -356,9 +360,9 @@
   };
 
   fileInput.addEventListener("change", () => {
-    const file = fileInput.files?.[0];
-    showName(file);
-    if (file) refreshTargets(file.name);
+    const files = selectedFiles();
+    showName(files);
+    if (files[0]) refreshTargets(files[0].name);
   });
 
   dropzone.addEventListener("dragenter", (event) => {
@@ -382,13 +386,13 @@
     dragDepth = 0;
     setDragState(false);
 
-    const file = event.dataTransfer?.files?.[0];
-    if (!file) return;
+    const dropped = [...(event.dataTransfer?.files || [])];
+    if (!dropped.length) return;
     const transfer = new DataTransfer();
-    transfer.items.add(file);
+    dropped.forEach((file) => transfer.items.add(file));
     fileInput.files = transfer.files;
-    showName(file);
-    refreshTargets(file.name);
+    showName(dropped);
+    refreshTargets(dropped[0].name);
 
     if (canAnimate) {
       motion.animate(dropzone, {
@@ -420,7 +424,7 @@
     });
 
   const currentFormats = () => {
-    const file = fileInput.files?.[0];
+    const file = selectedFiles()[0];
     const source = file?.name?.includes(".")
       ? file.name.split(".").pop()
       : "";
@@ -565,7 +569,7 @@
 
   const waitForTerminalJob = async (job) => {
     let current = job;
-    const terminal = new Set(["done", "failed"]);
+    const terminal = new Set(["done", "failed", "partial"]);
     while (!terminal.has(current.status) && current.status_url) {
       await sleep(POLL_MS);
       const response = await fetch(current.status_url, {
@@ -626,10 +630,14 @@
         });
 
         const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.ok || !data.job) {
+        const result = data.job || data.result;
+        if (!response.ok || !data.ok || !result) {
           setView("form");
           window.FileForgeConvertStage?.playIdle?.("#view-form");
-          applyFormErrors(data.errors || {}, data.message || "Conversion failed.");
+          applyFormErrors(
+            data.errors || {},
+            data.message || (response.status === 429 ? "Too many conversions." : "Conversion failed.")
+          );
           return;
         }
 
@@ -637,7 +645,7 @@
         // both the job is terminal AND the animation has had time to play.
         const holdMs = Math.max(0, MIN_CONVERT_MS - (Date.now() - startedAt));
         const [job] = await Promise.all([
-          waitForTerminalJob(data.job),
+          waitForTerminalJob(result),
           sleep(holdMs),
         ]);
 

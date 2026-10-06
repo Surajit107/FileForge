@@ -17,6 +17,7 @@ from engines.document import (
     PdfToTxtEngine,
 )
 from engines.exceptions import UnsupportedConversionError
+from engines.image import build_image_engines
 from engines.markdown import (
     MarkdownToDocxEngine,
     MarkdownToHtmlEngine,
@@ -27,6 +28,10 @@ from engines.markdown import (
 _ENGINES: dict[tuple[str, str], ConversionEngine] = {}
 _PAIRS: dict[tuple[str, str], ConversionPair] = {}
 
+DOCUMENT_SOURCES: frozenset[str] = frozenset({"md", "docx", "pdf"})
+IMAGE_SOURCES: frozenset[str] = frozenset({"png", "jpg", "webp", "gif", "bmp"})
+REGISTERED_SOURCES: frozenset[str] = DOCUMENT_SOURCES | IMAGE_SOURCES
+
 ALLOWED_SOURCE_EXTENSIONS: frozenset[str] = frozenset(
     {
         "md",
@@ -35,8 +40,39 @@ ALLOWED_SOURCE_EXTENSIONS: frozenset[str] = frozenset(
         "mkd",
         "docx",
         "pdf",
+        "png",
+        "jpg",
+        "jpeg",
+        "webp",
+        "gif",
+        "bmp",
     }
 )
+
+_ACCEPT_EXTENSIONS: tuple[str, ...] = (
+    ".md",
+    ".markdown",
+    ".docx",
+    ".pdf",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".gif",
+    ".bmp",
+)
+
+
+def accept_attribute() -> str:
+    """Comma-separated accept list for the upload input."""
+    return ",".join(_ACCEPT_EXTENSIONS)
+
+
+def supported_upload_message() -> str:
+    return (
+        "Unsupported file type. Currently accepts Markdown (.md), DOCX, PDF, "
+        "or images (PNG, JPG, WEBP, GIF, BMP)."
+    )
 
 
 def _register(pair: ConversionPair, engine: ConversionEngine) -> None:
@@ -114,6 +150,17 @@ def _bootstrap() -> None:
         PdfToDocxEngine(),
     )
 
+    for source, target, label, engine in build_image_engines():
+        _register(
+            ConversionPair(
+                source=source,
+                target=target,
+                label=label,
+                category="images",
+            ),
+            engine,
+        )
+
 
 def list_pairs() -> list[ConversionPair]:
     _bootstrap()
@@ -178,6 +225,6 @@ def detect_format_from_filename(filename: str) -> str | None:
     if not suffix:
         return None
     normalized = normalize_format(suffix)
-    if normalized in {"md", "docx", "pdf"}:
+    if normalized in REGISTERED_SOURCES:
         return normalized
     return None

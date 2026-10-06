@@ -6,7 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# LibreOffice is required for docx → pdf in the container (not installed on local Windows).
+# System packages not installed on local Windows:
+# - LibreOffice: docx → pdf
+# - ClamAV: optional upload malware scan (enable via CLAMAV_ENABLED=True)
+# - Image libs: runtime support for Pillow image conversions
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
@@ -16,6 +19,14 @@ RUN apt-get update \
         default-jre-headless \
         fonts-dejavu-core \
         fonts-liberation \
+        clamav \
+        clamav-freshclam \
+        libjpeg62-turbo \
+        zlib1g \
+        libwebp7 \
+        libtiff6 \
+        libopenjp2-7 \
+    && freshclam || true \
     && rm -rf /var/lib/apt/lists/*
 
 # Exported from uv.lock: uv export --no-hashes --no-emit-project --group prod -o requirements/production.txt
