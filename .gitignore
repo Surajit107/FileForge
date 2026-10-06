@@ -10,10 +10,10 @@ venv/
 # uv.lock is committed (reproducible installs)
 # machine-local uv config must NOT live in this repo
 
-# Django
+# Django (repo-root upload dirs only — do not ignore engines/media/)
 db.sqlite3
-media/
-media_test/
+/media/
+/media_test/
 staticfiles/
 *.log
 logs/*.log
