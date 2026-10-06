@@ -8,6 +8,18 @@ DEBUG = False
 SECRET_KEY = env("SECRET_KEY")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
+# Django 4+ Origin check for HTTPS POSTs. Prefer explicit env; otherwise
+# derive https://<host> from ALLOWED_HOSTS (covers Railway custom domains).
+_csrf_trusted = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+if _csrf_trusted:
+    CSRF_TRUSTED_ORIGINS = _csrf_trusted
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        f"https://{host}"
+        for host in ALLOWED_HOSTS
+        if host and host != "*" and not host.startswith(".")
+    ]
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=True)
 SESSION_COOKIE_SECURE = True
