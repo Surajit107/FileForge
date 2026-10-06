@@ -4,7 +4,7 @@ Personal online file converter built with **Django** and a framework-agnostic **
 
 Upload a file → choose an output format → download the result.
 
-**Currently supported (F3)**
+**Currently supported (F5/F6 conversions)**
 
 | Source | Targets |
 |--------|---------|
@@ -12,8 +12,15 @@ Upload a file → choose an output format → download the result.
 | DOCX | PDF *(LibreOffice required)*, TXT, MD *(best effort)* |
 | PDF | TXT, MD *(best effort)*, DOCX *(best effort)* |
 | Images (`.png` `.jpg` `.webp` `.gif` `.bmp`) | PNG, JPG, WEBP, PDF *(no same-format identity pairs)* |
+| CSV | XLSX, PDF *(LibreOffice required)* |
+| XLSX | CSV *(first sheet only)*, PDF *(LibreOffice required)* |
+| PPTX | PDF *(LibreOffice required, best effort)* |
+| Archives (`.zip` `.tar` `.tgz` / `.tar.gz` `.7z`) | ZIP, TAR, TAR.GZ, 7Z *(no identity; 7Z needs `7z`/`p7zip`)* |
+| Audio (`.mp3` `.wav` `.flac` `.ogg`) | MP3, WAV, FLAC, OGG *(ffmpeg required; no identity)* |
+| Video (`.mp4` `.webm` `.mkv`) | MP4, WEBM, MKV, plus MP3/WAV audio extract *(ffmpeg required)* |
 
 Batch upload: select up to **10 files** (same target); download a **ZIP** when done.
+Default upload limit is **100 MB** (`CONVERSION_MAX_UPLOAD_MB`); per-pair caps still apply (docs 25 MB, archives 50 MB, media 100 MB).
 
 Roadmap: [docs/PLAN.md](docs/PLAN.md)
 
@@ -153,7 +160,9 @@ celery -A config beat -l info
 python main.py runserver
 ```
 
-`docx → pdf` requires LibreOffice (`soffice`). Local `uv`/Windows setup does **not** install it — that pair will fail locally. The Docker image installs LibreOffice so the pair works on the server after rebuild/redeploy.
+`docx / xlsx / csv / pptx → pdf` require LibreOffice (`soffice`). Local `uv`/Windows setup does **not** install it — those pairs will fail locally. The Docker image installs Writer, Calc, and Impress so the pairs work on the server after rebuild/redeploy. `csv ↔ xlsx` uses openpyxl and works without LibreOffice.
+
+Archive `zip` / `tar` / `tgz` use the stdlib and work locally. `7z` pairs need `7z`/`p7zip` (`SEVEN_ZIP_PATH` optional). Audio/video pairs need **ffmpeg** (`FFMPEG_PATH` optional). Docker installs `ffmpeg` and `p7zip-full`.
 
 ClamAV (`clamscan`) is also installed in Docker only. Keep `CLAMAV_ENABLED=False` locally; set `CLAMAV_ENABLED=True` on the server when you want upload scanning.
 
@@ -432,7 +441,7 @@ docker compose -f docker/docker-compose.yml down
 
 Docker still installs from `requirements/production.txt` (exported from `uv.lock`). Re-export after changing deps.
 
-The image also installs **LibreOffice** (`libreoffice-writer`) for `docx → pdf`, **ClamAV** for optional upload scanning, and common image libs for Pillow. Redeploy/rebuild after Dockerfile changes so the server picks them up.
+The image also installs **LibreOffice** (Writer/Calc/Impress) for office → PDF, **ffmpeg** + **p7zip** for media/7z, **ClamAV** for optional upload scanning, and common image libs for Pillow. Redeploy/rebuild after Dockerfile changes so the server picks them up.
 
 ---
 
@@ -444,11 +453,13 @@ The image also installs **LibreOffice** (`libreoffice-writer`) for `docx → pdf
 | `uv` not found | Ensure `P:\Tools\uv` is on PATH; new terminal |
 | Config / secret errors | Compare your `.env` with `.env.example` |
 | Port 8000 busy | `python main.py runserver 8001` |
-| Upload rejected | Use a supported doc/image type; extension must match content; check upload/batch limits in `.env` |
+| Upload rejected | Use a supported type (docs/images/office/archives/audio/video); extension must match content; check upload/batch limits in `.env` |
 | Stale files | `python main.py purge_expired_jobs` |
 | CSRF 403 / “Origin checking failed” | On the host, set `DJANGO_SETTINGS_MODULE=config.settings.production`, `DEBUG=False`, `ALLOWED_HOSTS=fileforge.asteriq.in`, and **`CSRF_TRUSTED_ORIGINS=https://fileforge.asteriq.in`**, then redeploy. Origin must be a full `https://…` URL, not a bare hostname. |
-| `docx → pdf` fails locally | Expected — LibreOffice is not part of local setup. Use Docker/server for this pair |
-| `docx → pdf` fails on server | Rebuild/redeploy the Docker image so LibreOffice is installed |
+| `docx / xlsx / csv / pptx → pdf` fails locally | Expected — LibreOffice is not part of local setup. Use Docker/server for these pairs |
+| `office → pdf` fails on server | Rebuild/redeploy the Docker image so Writer/Calc/Impress are installed |
+| Audio/video fails locally | Expected without ffmpeg — install ffmpeg or use Docker |
+| `7z` pairs fail locally | Expected without 7-Zip/p7zip — install `7z` or use Docker |
 
 ---
 

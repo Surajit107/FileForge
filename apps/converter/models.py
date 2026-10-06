@@ -3,26 +3,27 @@
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
 
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+from apps.converter.services.filenames import storage_object_name
+
 
 def upload_to_input(instance: ConversionJob, filename: str) -> str:
-    safe_name = Path(filename).name
-    return f"{settings.CONVERSION_UPLOAD_SUBDIR}/{instance.id}/{safe_name}"
+    object_name = storage_object_name(filename, format_hint=instance.source_format)
+    return f"{settings.CONVERSION_UPLOAD_SUBDIR}/{instance.id}/{object_name}"
 
 
 def upload_to_output(instance: ConversionJob, filename: str) -> str:
-    safe_name = Path(filename).name
-    return f"{settings.CONVERSION_OUTPUT_SUBDIR}/{instance.id}/{safe_name}"
+    object_name = storage_object_name(filename, format_hint=instance.target_format)
+    return f"{settings.CONVERSION_OUTPUT_SUBDIR}/{instance.id}/{object_name}"
 
 
 def upload_to_batch_zip(instance: ConversionBatch, filename: str) -> str:
-    safe_name = Path(filename).name
-    return f"{settings.CONVERSION_OUTPUT_SUBDIR}/batches/{instance.id}/{safe_name}"
+    object_name = storage_object_name(filename, format_hint="zip")
+    return f"{settings.CONVERSION_OUTPUT_SUBDIR}/batches/{instance.id}/{object_name}"
 
 
 class ConversionBatch(models.Model):

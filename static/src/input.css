@@ -167,12 +167,17 @@
     }
   }
 
+  /* Form stacks above catalog so the absolute format panel is not covered. */
+  .convert-layout__form {
+    @apply relative z-20;
+  }
+
   .convert-layout__stage {
-    @apply grid content-start border-t border-line pt-5 md:border-l md:border-t-0 md:pl-6 md:pt-0 lg:pl-8;
+    @apply relative z-10 grid content-start border-t border-line pt-5 md:border-l md:border-t-0 md:pl-6 md:pt-0 lg:pl-8;
   }
 
   .convert-layout__catalog {
-    @apply border-t border-line pt-5 sm:pt-6;
+    @apply relative z-0 border-t border-line pt-5 sm:pt-6;
   }
 
   .pair-catalog__head {
@@ -1078,7 +1083,7 @@
   }
 
   .format-picker.is-open {
-    @apply z-30;
+    @apply z-40;
   }
 
   .format-picker__native {
@@ -1122,7 +1127,7 @@
   }
 
   .format-picker__panel {
-    @apply absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-line;
+    @apply absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-line;
     background: #1a1a1a;
     box-shadow:
       0 18px 40px -18px rgb(0 0 0 / 0.75),

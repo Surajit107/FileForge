@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 from django.contrib import messages
 from django.http import FileResponse, Http404, JsonResponse
@@ -28,7 +27,13 @@ from apps.converter.services.batch import (
 from apps.converter.services.conversion import (
     create_and_run,
     get_downloadable_job,
+    output_filename,
     progress_label,
+)
+from apps.converter.services.downloads import (
+    signed_batch_download_url,
+    signed_job_download_url,
+    verify_download_token,
 )
 from apps.converter.services.history import history_page
 from apps.converter.services.rate_limit import RateLimitExceeded, check_conversion_rate_limit
@@ -43,6 +48,17 @@ def _wants_json(request) -> bool:
         "application/json" in accept
         or request.headers.get("X-Requested-With") == "XMLHttpRequest"
     )
+
+
+def _require_download_token(request, *, kind: str, object_id, expires_at) -> None:
+    token = request.GET.get("token", "")
+    if not verify_download_token(
+        token,
+        kind=kind,
+        object_id=str(object_id),
+        expires_at=expires_at,
+    ):
+        raise Http404("Download link is invalid or expired.")
 
 
 def serialize_job(job: ConversionJob) -> dict:
@@ -60,11 +76,7 @@ def serialize_job(job: ConversionJob) -> dict:
         "expires_at": timezone.localtime(job.expires_at).strftime("%Y-%m-%d %H:%M"),
         "status_url": reverse("converter:job_status", kwargs={"job_id": job.id}),
         "detail_url": reverse("converter:job_detail", kwargs={"job_id": job.id}),
-        "download_url": (
-            reverse("converter:download", kwargs={"job_id": job.id})
-            if job.is_downloadable
-            else None
-        ),
+        "download_url": signed_job_download_url(job),
     }
 
 
@@ -89,11 +101,7 @@ def serialize_batch(batch: ConversionBatch) -> dict:
         "expires_at": timezone.localtime(batch.expires_at).strftime("%Y-%m-%d %H:%M"),
         "status_url": reverse("converter:batch_status", kwargs={"batch_id": batch.id}),
         "detail_url": reverse("converter:batch_detail", kwargs={"batch_id": batch.id}),
-        "download_url": (
-            reverse("converter:batch_download", kwargs={"batch_id": batch.id})
-            if batch.is_downloadable
-            else None
-        ),
+        "download_url": signed_batch_download_url(batch),
     }
 
 
@@ -197,6 +205,7 @@ def job_detail(request, job_id):
         {
             "job": job,
             "progress": progress_label(job.status),
+            "download_url": signed_job_download_url(job),
         },
     )
 
@@ -210,17 +219,26 @@ def job_status(request, job_id):
 @require_GET
 def download_result(request, job_id):
     job = get_owned_job_or_404(request, job_id)
+    _require_download_token(
+        request,
+        kind="job",
+        object_id=job.id,
+        expires_at=job.expires_at,
+    )
     try:
         job = get_downloadable_job(job)
     except ConversionServiceError as exc:
         raise Http404(str(exc)) from exc
 
-    filename = f"{Path(job.original_name).stem}.{job.target_format}"
-    return FileResponse(
+    filename = output_filename(job.original_name, job.target_format)
+    response = FileResponse(
         job.output_file.open("rb"),
         as_attachment=True,
         filename=filename,
+        content_type="application/octet-stream",
     )
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @require_GET
@@ -233,6 +251,7 @@ def batch_detail(request, batch_id):
             "batch": batch,
             "jobs": batch.jobs.order_by("created_at"),
             "progress": batch_progress_label(batch.status),
+            "download_url": signed_batch_download_url(batch),
         },
     )
 
@@ -246,17 +265,26 @@ def batch_status(request, batch_id):
 @require_GET
 def batch_download(request, batch_id):
     batch = get_owned_batch_or_404(request, batch_id)
+    _require_download_token(
+        request,
+        kind="batch",
+        object_id=batch.id,
+        expires_at=batch.expires_at,
+    )
     try:
         batch = get_downloadable_batch(batch)
     except ConversionServiceError as exc:
         raise Http404(str(exc)) from exc
 
     filename = f"fileforge-batch-{batch.id}.zip"
-    return FileResponse(
+    response = FileResponse(
         batch.zip_file.open("rb"),
         as_attachment=True,
         filename=filename,
+        content_type="application/octet-stream",
     )
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @require_GET

@@ -12,15 +12,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
-    CONVERSION_MAX_UPLOAD_MB=(int, 25),
+    CONVERSION_MAX_UPLOAD_MB=(int, 100),
     CONVERSION_JOB_TTL_HOURS=(int, 24),
     CONVERSION_SYNC_ENABLED=(bool, False),
     CONVERSION_MAX_BATCH_FILES=(int, 10),
     CONVERSION_MAX_BATCH_MB=(int, 100),
     CONVERSION_RATE_LIMIT=(int, 20),
     CONVERSION_RATE_WINDOW_SEC=(int, 3600),
+    CONVERSION_MAX_PDF_PAGES=(int, 200),
+    CONVERSION_MAX_IMAGE_PIXELS=(int, 40_000_000),
+    CONVERSION_DOWNLOAD_TOKEN_MAX_AGE_SEC=(int, 0),
     CLAMAV_ENABLED=(bool, False),
     HISTORY_PAGE_SIZE=(int, 10),
+    USE_X_FORWARDED_FOR=(bool, False),
 )
 
 environ.Env.read_env(BASE_DIR / ".env")
@@ -121,8 +125,8 @@ STORAGES = {
     },
 }
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = env("MEDIA_URL", default="")
+MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(BASE_DIR / "media")))
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -137,9 +141,14 @@ CONVERSION_MAX_BATCH_FILES = env("CONVERSION_MAX_BATCH_FILES")
 CONVERSION_MAX_BATCH_BYTES = env("CONVERSION_MAX_BATCH_MB") * 1024 * 1024
 CONVERSION_RATE_LIMIT = env("CONVERSION_RATE_LIMIT")
 CONVERSION_RATE_WINDOW_SEC = env("CONVERSION_RATE_WINDOW_SEC")
+CONVERSION_MAX_PDF_PAGES = env("CONVERSION_MAX_PDF_PAGES")
+CONVERSION_MAX_IMAGE_PIXELS = env("CONVERSION_MAX_IMAGE_PIXELS")
+# 0 = token lives until job expires_at; otherwise min(job TTL, this cap).
+CONVERSION_DOWNLOAD_TOKEN_MAX_AGE_SEC = env("CONVERSION_DOWNLOAD_TOKEN_MAX_AGE_SEC")
 CONVERSION_UPLOAD_SUBDIR = "uploads"
 CONVERSION_OUTPUT_SUBDIR = "outputs"
 HISTORY_PAGE_SIZE = env("HISTORY_PAGE_SIZE")
+USE_X_FORWARDED_FOR = env("USE_X_FORWARDED_FOR")
 
 CLAMAV_ENABLED = env("CLAMAV_ENABLED")
 CLAMAV_BINARY = env("CLAMAV_BINARY", default="clamscan")
@@ -167,6 +176,32 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 3600.0,  # hourly
     },
 }
+
+# Rate-limit / session cache. Prefer Redis when available (shared across workers).
+_CACHE_URL = env("CACHE_URL", default="")
+if _CACHE_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _CACHE_URL,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "fileforge-local",
+        }
+    }
+
+# Pillow decompression-bomb ceiling (also enforced at upload time).
+try:
+    from PIL import Image
+
+    Image.MAX_IMAGE_PIXELS = CONVERSION_MAX_IMAGE_PIXELS
+except ImportError:
+    pass
+
 
 LOGGING = {
     "version": 1,

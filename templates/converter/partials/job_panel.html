@@ -127,7 +127,7 @@
       <a
         class="btn-primary"
         id="job-download-link"
-        href="{% if batch and batch.is_downloadable %}{% url 'converter:batch_download' batch.id %}{% elif job and job.is_downloadable %}{% url 'converter:download' job.id %}{% else %}#{% endif %}"
+        href="{% if download_url %}{{ download_url }}{% else %}#{% endif %}"
       >
         <svg class="icon icon--download btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path class="icon__arrow" d="M12 4v11m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/>

@@ -7,7 +7,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # System packages not installed on local Windows:
-# - LibreOffice: docx → pdf
+# - LibreOffice Writer/Calc/Impress: docx/xlsx/csv/pptx → pdf
+# - ffmpeg: audio/video conversions
+# - p7zip: .7z archive conversions
 # - ClamAV: optional upload malware scan (enable via CLAMAV_ENABLED=True)
 # - Image libs: runtime support for Pillow image conversions
 RUN apt-get update \
@@ -15,10 +17,14 @@ RUN apt-get update \
         build-essential \
         libpq-dev \
         libreoffice-writer \
+        libreoffice-calc \
+        libreoffice-impress \
         libreoffice-java-common \
         default-jre-headless \
         fonts-dejavu-core \
         fonts-liberation \
+        ffmpeg \
+        p7zip-full \
         clamav \
         clamav-freshclam \
         libjpeg62-turbo \
@@ -35,9 +41,10 @@ RUN pip install --no-cache-dir -r /tmp/requirements/production.txt
 
 COPY . /app
 
-RUN chmod +x /app/docker/entrypoint.sh \
+RUN chmod +x /app/docker/entrypoint.sh /app/docker/entrypoint-worker.sh \
     && useradd --create-home appuser \
-    && chown -R appuser:appuser /app
+    && mkdir -p /var/fileforge/media \
+    && chown -R appuser:appuser /app /var/fileforge
 
 USER appuser
 
