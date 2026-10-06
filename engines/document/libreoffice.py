@@ -1,11 +1,13 @@
 """LibreOffice headless conversion helper.
 
-``docx → pdf`` quality on desktop OS usually requires LibreOffice.
-If ``soffice`` / ``libreoffice`` is missing, fail loud with a clear message.
+``docx → pdf`` requires LibreOffice. The Docker image installs it for server
+deploys; local Windows is expected to fail this pair unless LibreOffice is
+installed separately.
 """
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import tempfile
@@ -13,12 +15,36 @@ from pathlib import Path
 
 from engines.exceptions import ConversionFailedError
 
+_WINDOWS_CANDIDATES = (
+    Path(r"C:\Program Files\LibreOffice\program\soffice.exe"),
+    Path(r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"),
+)
+
+_UNIX_CANDIDATES = (
+    Path("/usr/bin/soffice"),
+    Path("/usr/bin/libreoffice"),
+    Path("/usr/lib/libreoffice/program/soffice"),
+    Path("/opt/libreoffice/program/soffice"),
+)
+
 
 def find_libreoffice() -> str | None:
+    """Return an executable path for LibreOffice, or None if missing."""
     for candidate in ("soffice", "libreoffice", "soffice.exe"):
         resolved = shutil.which(candidate)
         if resolved:
             return resolved
+
+    extra = os.environ.get("LIBREOFFICE_PATH", "").strip()
+    if extra:
+        path = Path(extra)
+        if path.is_file():
+            return str(path)
+
+    search = _WINDOWS_CANDIDATES if os.name == "nt" else _UNIX_CANDIDATES
+    for path in search:
+        if path.is_file():
+            return str(path)
     return None
 
 
@@ -27,12 +53,20 @@ def convert_with_libreoffice(source_path: Path, destination_path: Path) -> Path:
     if binary is None:
         raise ConversionFailedError(
             "LibreOffice is required for this conversion but was not found. "
-            "Install LibreOffice and ensure `soffice` is on PATH."
+            "Install LibreOffice and ensure `soffice` is on PATH, or set "
+            "LIBREOFFICE_PATH to the soffice binary."
         )
 
     destination_path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="fileforge-lo-") as tmp:
-        out_dir = Path(tmp)
+        root = Path(tmp)
+        out_dir = root / "out"
+        profile_dir = root / "profile"
+        out_dir.mkdir()
+        profile_dir.mkdir()
+        # Isolated profile avoids lock/home-permission failures in Docker.
+        profile_uri = profile_dir.resolve().as_uri()
+
         try:
             completed = subprocess.run(
                 [
@@ -42,6 +76,7 @@ def convert_with_libreoffice(source_path: Path, destination_path: Path) -> Path:
                     "--nolockcheck",
                     "--nodefault",
                     "--nofirststartwizard",
+                    f"-env:UserInstallation={profile_uri}",
                     "--convert-to",
                     destination_path.suffix.lstrip("."),
                     "--outdir",
@@ -52,6 +87,11 @@ def convert_with_libreoffice(source_path: Path, destination_path: Path) -> Path:
                 capture_output=True,
                 text=True,
                 timeout=180,
+                env={
+                    **os.environ,
+                    "HOME": str(root),
+                    "SAL_USE_VCLPLUGIN": "svp",
+                },
             )
         except subprocess.TimeoutExpired as exc:
             raise ConversionFailedError("LibreOffice conversion timed out.") from exc

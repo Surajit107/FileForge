@@ -59,7 +59,7 @@
   }
 
   .ambient-orb {
-    @apply pointer-events-none absolute left-[8%] top-[6%] z-0 h-[28rem] w-[28rem] rounded-full opacity-40;
+    @apply pointer-events-none absolute left-[4%] top-[4%] z-0 h-[18rem] w-[18rem] rounded-full opacity-35 sm:left-[8%] sm:top-[6%] sm:h-[24rem] sm:w-[24rem] sm:opacity-40 md:h-[28rem] md:w-[28rem];
     background:
       radial-gradient(circle at 35% 35%, rgb(251 191 36 / 0.16), transparent 58%),
       radial-gradient(circle at 70% 65%, rgb(255 255 255 / 0.05), transparent 52%);
@@ -68,9 +68,33 @@
   }
 
   .site-frame {
-    @apply relative z-10 mx-auto flex w-full max-w-6xl flex-col px-4 pb-6 pt-5 sm:px-6 sm:pb-8 sm:pt-7 lg:px-8;
+    @apply relative z-10 mx-auto flex w-full max-w-6xl flex-col px-4 pb-6 pt-5 sm:px-6 sm:pb-8 sm:pt-7 md:px-7 lg:px-8;
     min-height: 100svh;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
     perspective: 1400px;
+  }
+
+  @media (min-width: 640px) {
+    .site-frame {
+      padding-left: max(1.5rem, env(safe-area-inset-left));
+      padding-right: max(1.5rem, env(safe-area-inset-right));
+    }
+  }
+
+  @media (min-width: 768px) {
+    .site-frame {
+      padding-left: max(1.75rem, env(safe-area-inset-left));
+      padding-right: max(1.75rem, env(safe-area-inset-right));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .site-frame {
+      padding-left: max(2rem, env(safe-area-inset-left));
+      padding-right: max(2rem, env(safe-area-inset-right));
+    }
   }
 
   .site-panel,
@@ -82,11 +106,19 @@
   }
 
   .site-header {
-    @apply mb-5 shrink-0 sm:mb-6;
+    @apply mb-4 shrink-0 sm:mb-5 md:mb-6;
+  }
+
+  .site-header__bar {
+    @apply flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between;
+  }
+
+  .site-header__nav {
+    @apply flex w-full items-center gap-3 border-t border-line pt-3 text-sm font-semibold sm:w-auto sm:justify-end sm:gap-4 sm:border-t-0 sm:pt-0;
   }
 
   .site-panel {
-    @apply relative flex-1 overflow-visible rounded-3xl border border-line bg-panel p-4 shadow-panel sm:p-6 lg:p-7;
+    @apply relative flex-1 overflow-visible rounded-2xl border border-line bg-panel p-3.5 shadow-panel sm:rounded-3xl sm:p-5 md:p-6 lg:p-7;
   }
 
   .brand-mark {
@@ -98,11 +130,11 @@
   }
 
   .convert-layout {
-    @apply grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(16rem,0.9fr)] lg:items-start lg:gap-8;
+    @apply grid gap-5 sm:gap-6 md:grid-cols-[minmax(0,1.3fr)_minmax(14rem,0.85fr)] md:items-start md:gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(16rem,0.9fr)] lg:gap-8;
   }
 
   .convert-layout__aside {
-    @apply border-t border-line pt-5 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0;
+    @apply border-t border-line pt-5 md:border-l md:border-t-0 md:pl-6 md:pt-0 lg:pl-8;
   }
 
   .convert-converting {
@@ -176,7 +208,7 @@
   }
 
   .job-pair {
-    @apply relative overflow-hidden rounded-xl border border-line px-3 py-3;
+    @apply relative overflow-hidden rounded-xl border border-line px-2.5 py-2.5 sm:px-3 sm:py-3;
     background: linear-gradient(180deg, rgb(26 26 26 / 0.7) 0%, rgb(10 10 10 / 0.9) 100%);
     transition: box-shadow 0.35s ease, border-color 0.35s ease;
   }
@@ -190,7 +222,7 @@
   }
 
   .job-pair__track {
-    @apply relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5;
+    @apply relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5 sm:gap-2.5;
     perspective: 600px;
   }
 
@@ -207,7 +239,7 @@
   }
 
   .job-pair__badge {
-    @apply relative z-10 inline-flex min-w-[3.75rem] flex-col items-center gap-0.5 rounded-lg border border-line px-2.5 py-1.5 text-center;
+    @apply relative z-10 inline-flex min-w-[3.25rem] flex-col items-center gap-0.5 rounded-lg border border-line px-2 py-1.5 text-center sm:min-w-[3.75rem] sm:px-2.5;
     background: linear-gradient(180deg, #222222 0%, #171717 100%);
     box-shadow: 0 8px 18px -14px rgb(0 0 0 / 0.9);
     will-change: transform;
@@ -490,7 +522,7 @@
   }
 
   .job-meta__item {
-    @apply grid grid-cols-[6.5rem_minmax(0,1fr)] items-baseline gap-3 border-b border-line py-3 last:border-b-0 sm:grid-cols-[7.5rem_minmax(0,1fr)];
+    @apply grid grid-cols-1 items-baseline gap-1 border-b border-line py-3 last:border-b-0 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:gap-3 md:grid-cols-[7.5rem_minmax(0,1fr)];
   }
 
   .job-meta__item dt {
@@ -573,7 +605,7 @@
   }
 
   .dropzone {
-    @apply relative grid min-h-[8.5rem] place-items-center rounded-2xl border-2 border-dashed border-line px-5 py-6 text-center;
+    @apply relative grid min-h-[7.5rem] place-items-center rounded-2xl border-2 border-dashed border-line px-4 py-5 text-center sm:min-h-[8.5rem] sm:px-5 sm:py-6;
     background:
       linear-gradient(180deg, rgb(26 26 26 / 0.55) 0%, rgb(10 10 10 / 0.85) 100%);
     transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
@@ -817,11 +849,15 @@
   }
 
   .pagination {
-    @apply flex flex-wrap items-center justify-between gap-3;
+    @apply flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between;
+  }
+
+  .pagination .btn-secondary {
+    @apply w-full justify-center sm:w-auto;
   }
 
   .pagination__status {
-    @apply m-0 text-sm font-medium text-mist;
+    @apply m-0 text-center text-sm font-medium text-mist sm:text-left;
   }
 
   .btn-ghost {
@@ -837,24 +873,24 @@
   }
 
   .action-row {
-    @apply flex flex-wrap items-center gap-3;
+    @apply flex flex-col items-stretch gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3;
   }
 
   .action-row .btn-primary,
   .action-row .btn-secondary {
-    @apply min-h-[3rem];
+    @apply min-h-[3rem] w-full sm:w-auto;
   }
 
   .action-row__link {
-    @apply px-2 py-2;
+    @apply justify-center px-2 py-2 sm:justify-start;
   }
 
   .convert-actions {
-    @apply grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end;
+    @apply grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end;
   }
 
   .convert-actions .btn-primary {
-    @apply w-full min-h-[3.25rem] sm:min-w-[11.5rem];
+    @apply w-full min-h-[3.25rem] md:min-w-[11.5rem];
   }
 
   .dropzone__icon {
@@ -966,11 +1002,11 @@
   }
 
   .format-picker__menu {
-    @apply m-0 grid max-h-64 list-none grid-cols-3 gap-1.5 overflow-y-auto p-2;
+    @apply m-0 grid max-h-56 list-none grid-cols-2 gap-1.5 overflow-y-auto p-2 sm:max-h-64 sm:grid-cols-3;
   }
 
   .format-picker__option {
-    @apply grid min-h-[3.25rem] cursor-pointer place-content-center gap-0.5 rounded-lg border border-line px-2 py-2 text-center text-ink-soft transition duration-150;
+    @apply grid min-h-[3rem] cursor-pointer place-content-center gap-0.5 rounded-lg border border-line px-2 py-2 text-center text-ink-soft transition duration-150 sm:min-h-[3.25rem];
     background: linear-gradient(180deg, #222222 0%, #171717 100%);
     will-change: transform;
   }
@@ -1022,7 +1058,7 @@
   }
 
   .pair-list__item {
-    @apply flex items-center justify-between gap-3 border-b border-line px-0 py-2.5 last:border-b-0;
+    @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-line px-0 py-2.5 last:border-b-0;
     background: transparent;
     border-radius: 0;
     box-shadow: none;
@@ -1050,7 +1086,7 @@
   }
 
   .history-row {
-    @apply flex flex-wrap items-start justify-between gap-3 border-b border-line py-4 last:border-b-0;
+    @apply flex flex-col items-stretch gap-3 border-b border-line py-4 last:border-b-0 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between;
   }
 
   .history-row__main {
@@ -1070,7 +1106,7 @@
   }
 
   .history-row__aside {
-    @apply flex shrink-0 flex-col items-end gap-2;
+    @apply flex shrink-0 flex-row items-center justify-between gap-3 sm:flex-col sm:items-end sm:gap-2;
   }
 
   .history-row__status {
@@ -1128,12 +1164,12 @@
   }
 
   .progress-step {
-    @apply relative flex flex-col items-center gap-2 px-1 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-mist transition;
+    @apply relative flex flex-col items-center gap-1.5 px-0.5 text-center text-[0.62rem] font-semibold uppercase tracking-wide text-mist transition sm:gap-2 sm:px-1 sm:text-[0.7rem];
   }
 
   .progress-step:not(:last-child)::after {
     content: "";
-    @apply absolute left-[calc(50%+0.7rem)] right-[calc(-50%+0.7rem)] top-[0.4rem] h-px;
+    @apply absolute left-[calc(50%+0.55rem)] right-[calc(-50%+0.55rem)] top-[0.35rem] h-px sm:left-[calc(50%+0.7rem)] sm:right-[calc(-50%+0.7rem)] sm:top-[0.4rem];
     background: rgb(255 255 255 / 0.12);
   }
 
@@ -1186,11 +1222,11 @@
   }
 }
 
-/* Standalone intro splash — conversion forge sequence. */
+/* Intro splash — file appears → ember scan → boom convert. */
 .intro-splash {
   @apply pointer-events-none fixed inset-0 z-[80] grid place-items-center overflow-hidden;
   background:
-    radial-gradient(ellipse 50% 40% at 50% 48%, rgb(251 191 36 / 0.09), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 42%, rgb(251 191 36 / 0.08), transparent 60%),
     linear-gradient(165deg, #030303 0%, #0a0a0a 55%, #050505 100%);
 }
 
@@ -1198,79 +1234,123 @@
   @apply pointer-events-auto;
 }
 
-.intro-splash__beam {
-  @apply pointer-events-none absolute top-0 h-full w-px;
-  left: calc(50% - 0.5px);
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgb(251 191 36 / 0.15) 20%,
-    rgb(251 191 36 / 0.85) 50%,
-    rgb(251 191 36 / 0.15) 80%,
-    transparent 100%
-  );
-  box-shadow: 0 0 28px rgb(251 191 36 / 0.35);
-  transform-origin: center center;
-  will-change: transform, opacity;
-}
-
 .intro-splash__stage {
-  @apply relative grid w-full max-w-3xl place-items-center px-6;
+  @apply relative flex w-full max-w-xl flex-col items-center px-4 sm:px-6;
 }
 
-.intro-splash__sheets {
-  @apply absolute left-1/2 top-1/2 flex w-[min(90vw,28rem)] -translate-x-1/2 -translate-y-1/2 items-center justify-between;
+.intro-splash__forge {
+  @apply relative mb-8 grid place-items-center sm:mb-10;
 }
 
 .intro-splash__sheet {
-  @apply relative h-[7.5rem] w-[5.5rem] rounded-xl border border-line bg-panel-raised sm:h-36 sm:w-28;
-  box-shadow: 0 18px 40px -20px rgb(0 0 0 / 0.8);
+  @apply relative h-[13.5rem] w-[10rem] sm:h-[16.5rem] sm:w-[12rem];
+  filter: drop-shadow(0 28px 28px rgb(0 0 0 / 0.55));
+  will-change: transform, opacity, filter;
+}
+
+.intro-splash__sheet.is-scanning .intro-splash__sheet-body {
+  stroke: rgb(251 191 36 / 0.42);
+}
+
+.intro-splash__sheet.is-converted {
+  filter:
+    drop-shadow(0 0 16px rgb(251 191 36 / 0.26))
+    drop-shadow(0 28px 28px rgb(0 0 0 / 0.55));
+}
+
+.intro-splash__sheet-svg {
+  @apply absolute inset-0 h-full w-full;
+  overflow: visible;
+}
+
+.intro-splash__sheet-body {
+  fill: url(#intro-sheet-fill);
+  stroke: rgb(255 255 255 / 0.15);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.intro-splash__sheet-flap {
+  fill: #3f3f3f;
+  stroke: none;
+}
+
+.intro-splash__sheet.is-converted .intro-splash__stop-a {
+  stop-color: rgb(251 191 36 / 0.22);
+}
+
+.intro-splash__sheet.is-converted .intro-splash__stop-b {
+  stop-color: #171717;
+}
+
+.intro-splash__sheet.is-converted .intro-splash__sheet-body {
+  stroke: rgb(251 191 36 / 0.55);
+}
+
+.intro-splash__sheet.is-converted .intro-splash__sheet-flap {
+  fill: rgb(251 191 36 / 0.38);
+}
+
+.intro-splash__sheet-content {
+  @apply absolute inset-0 z-[1] overflow-hidden;
+  clip-path: polygon(
+    11% 7%,
+    68% 7%,
+    90% 23%,
+    90% 89%,
+    80% 95%,
+    20% 95%,
+    10% 89%
+  );
+}
+
+.intro-splash__sheet-scan {
+  @apply pointer-events-none absolute inset-x-0 top-0 z-20 block h-0;
   will-change: transform, opacity;
 }
 
-.intro-splash__sheet--source {
-  rotate: -8deg;
+.intro-splash__scan-halo {
+  @apply absolute inset-x-0 -top-4 block h-9;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(251 191 36 / 0.12) 42%,
+    rgb(251 191 36 / 0.32) 50%,
+    rgb(251 191 36 / 0.12) 58%,
+    transparent 100%
+  );
 }
 
-.intro-splash__sheet--target {
-  rotate: 8deg;
+.intro-splash__scan-core {
+  @apply absolute inset-x-0 top-0 block h-[2px];
+  background: rgb(253 224 71 / 0.95);
+  box-shadow:
+    0 0 8px rgb(251 191 36 / 0.65),
+    0 0 2px rgb(255 255 255 / 0.55);
 }
 
-.intro-splash__sheet-lines {
-  @apply absolute inset-x-3 top-4 bottom-8 block rounded-sm;
-  background:
-    repeating-linear-gradient(
-      to bottom,
-      rgb(255 255 255 / 0.1) 0 2px,
-      transparent 2px 10px
-    );
-}
-
-.intro-splash__sheet-badge {
-  @apply absolute bottom-2.5 left-1/2 -translate-x-1/2 font-display text-[0.65rem] font-bold tracking-[0.12em] text-ember;
-}
-
-.intro-splash__formats {
-  @apply absolute left-1/2 top-[calc(50%-6.5rem)] z-20 flex -translate-x-1/2 items-center gap-2 sm:top-[calc(50%-7.25rem)];
-}
-
-.intro-splash__chip {
-  @apply rounded-full border border-line bg-panel/90 px-2.5 py-1 font-display text-[0.65rem] font-bold tracking-[0.14em] text-mist backdrop-blur-sm;
-  will-change: transform, opacity;
+.intro-splash__sheet-flash {
+  @apply pointer-events-none absolute inset-[6%] z-30 block rounded-xl;
+  background: radial-gradient(
+    circle at 50% 42%,
+    rgb(251 191 36 / 0.75) 0%,
+    rgb(251 191 36 / 0.22) 38%,
+    transparent 68%
+  );
+  will-change: opacity, transform;
 }
 
 .intro-splash__brand-wrap {
   @apply relative z-10;
-  /* Do not clip — Syne extrabold ink overflows the em-box on letters like "e". */
   overflow: visible;
   padding-inline: 0.06em 0.12em;
 }
 
 .intro-splash__brand {
-  @apply relative z-10 m-0 font-display text-[clamp(2.6rem,10vw,5.25rem)] font-extrabold leading-none tracking-[-0.06em] text-ink;
+  @apply relative z-10 m-0 font-display text-[clamp(2.4rem,9vw,4.75rem)] font-extrabold leading-none tracking-[-0.06em] text-ink;
   overflow: visible;
   padding-right: 0.08em;
-  will-change: transform, opacity, filter, clip-path;
+  will-change: transform, opacity;
 }
 
 .intro-splash__tag {
@@ -1280,6 +1360,8 @@
 
 .intro-splash__skip {
   @apply absolute bottom-6 right-6 rounded-full border border-line bg-panel/80 px-3.5 py-1.5 text-xs font-semibold tracking-wide text-mist backdrop-blur-sm transition-colors;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  right: max(1.5rem, env(safe-area-inset-right));
 }
 
 .intro-splash__skip:hover,

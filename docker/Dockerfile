@@ -6,8 +6,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# LibreOffice is required for docx → pdf in the container (not installed on local Windows).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential libpq-dev \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        libreoffice-writer \
+        libreoffice-java-common \
+        default-jre-headless \
+        fonts-dejavu-core \
+        fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 # Exported from uv.lock: uv export --no-hashes --no-emit-project --group prod -o requirements/production.txt
