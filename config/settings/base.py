@@ -100,7 +100,13 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# Ship only built/runtime assets. Tailwind SOURCE lives in static/src/ and must
+# NOT be collectstatic'd — WhiteNoise Manifest storage dies on `@import "tailwindcss"`.
+STATICFILES_DIRS = [
+    ("css", BASE_DIR / "static" / "css"),
+    ("js", BASE_DIR / "static" / "js"),
+    ("img", BASE_DIR / "static" / "img"),
+]
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
