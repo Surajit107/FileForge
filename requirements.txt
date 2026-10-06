@@ -1,0 +1,4 @@
+# Convenience meta-file for tools that expect requirements.txt.
+# Source of truth: pyproject.toml + uv.lock
+# Prefer: uv sync
+-r requirements/local.txt

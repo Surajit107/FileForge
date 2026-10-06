@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Convert — {{ SITE_NAME }}{% endblock %}
+
+{% block body_attrs %}data-intro-splash="1"{% endblock %}
+
+{% block content %}
+<div id="convert-app" data-view="form">
+  <div id="view-form" class="convert-layout" data-convert-view="form">
+    <section class="convert-layout__form" aria-labelledby="convert-heading">
+      <p class="page-kicker">Convert</p>
+      <h1 id="convert-heading" class="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+        Convert a file
+      </h1>
+      <p class="page-lead mt-1.5 text-sm text-mist sm:text-base">
+        Upload a source file, choose an output format, download the result.
+      </p>
+
+      <form
+        method="post"
+        enctype="multipart/form-data"
+        class="mt-6 grid gap-4"
+        id="convert-form"
+        novalidate
+      >
+        {% csrf_token %}
+
+        <div class="dropzone" id="dropzone">
+          <label for="{{ form.source_file.id_for_label }}" class="relative z-10 grid cursor-pointer gap-1">
+            <span class="dropzone__icon" aria-hidden="true">
+              <svg class="icon icon--upload" viewBox="0 0 24 24" fill="none">
+                <path class="icon__arrow" d="M12 16V4m0 0 4 4m-4-4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="icon__tray" d="M4 16.5V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+              </svg>
+            </span>
+            <span class="text-base font-semibold text-ink">Drop a file here</span>
+            <span class="text-sm text-mist">or click to browse · .md, .docx, .pdf</span>
+          </label>
+          {{ form.source_file }}
+          {% if form.source_file.errors %}
+            <ul class="relative z-10 mt-3 list-disc pl-5 text-sm text-danger" id="source-file-errors">
+              {% for error in form.source_file.errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          {% else %}
+            <ul class="relative z-10 mt-3 hidden list-disc pl-5 text-sm text-danger" id="source-file-errors"></ul>
+          {% endif %}
+          <p class="relative z-10 mt-3 hidden text-sm font-semibold text-ink" id="file-name"></p>
+        </div>
+
+        <div class="convert-actions">
+          <div class="format-field" data-format-picker>
+            <span class="format-field__label" id="format-label">Convert to</span>
+            <div class="format-picker">
+              <button
+                type="button"
+                class="format-picker__trigger"
+                id="format-trigger"
+                aria-labelledby="format-label format-trigger-value"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="format-panel"
+              >
+                <span class="inline-flex items-center gap-2.5">
+                  <svg class="icon icon--doc h-5 w-5 text-mist" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path class="icon__body" d="M7 4h7l3 3v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" stroke="currentColor" stroke-width="1.5"/>
+                    <path class="icon__fold" d="M14 4v3h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path class="icon__lines" d="M9 13h6M9 16h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  <span class="format-picker__value" id="format-trigger-value" data-format-badge>
+                    {% with selected=form.target_format.value %}
+                      {% if selected %}{{ selected|upper }}{% else %}
+                        {% for value, label in form.fields.target_format.choices %}
+                          {% if forloop.first %}{{ value|upper }}{% endif %}
+                        {% endfor %}
+                      {% endif %}
+                    {% endwith %}
+                  </span>
+                </span>
+                <svg class="icon icon--chevron format-picker__chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+
+              <div class="format-picker__panel" id="format-panel" hidden>
+                <label class="format-picker__search">
+                  <span class="sr-only">Search formats</span>
+                  <svg class="icon icon--search format-picker__search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <circle class="icon__ring" cx="8.5" cy="8.5" r="5.75" stroke="currentColor" stroke-width="1.5"/>
+                    <path class="icon__handle" d="M12.75 12.75 16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  <input
+                    type="search"
+                    class="format-picker__search-input"
+                    id="format-search"
+                    placeholder="Search formats…"
+                    autocomplete="off"
+                    spellcheck="false"
+                  >
+                </label>
+
+                <ul
+                  class="format-picker__menu"
+                  id="format-list"
+                  role="listbox"
+                  aria-labelledby="format-label"
+                >
+                  {% for value, label in form.fields.target_format.choices %}
+                    <li
+                      class="format-picker__option"
+                      role="option"
+                      tabindex="-1"
+                      data-value="{{ value }}"
+                      data-label="{{ label }}"
+                      aria-selected="{% if form.target_format.value == value or not form.target_format.value and forloop.first %}true{% else %}false{% endif %}"
+                      aria-label="{{ label }}"
+                    >
+                      <span class="format-picker__option-code">{{ value|upper }}</span>
+                      {% if "best effort" in label|lower %}
+                        <span class="format-picker__option-hint">best effort</span>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+
+                <p class="format-picker__empty" id="format-empty" hidden>No matching formats</p>
+              </div>
+
+              {{ form.target_format }}
+            </div>
+            {% if form.target_format.errors %}
+              <ul class="list-disc pl-5 text-sm text-danger" id="target-format-errors">
+                {% for error in form.target_format.errors %}<li>{{ error }}</li>{% endfor %}
+              </ul>
+            {% else %}
+              <ul class="hidden list-disc pl-5 text-sm text-danger" id="target-format-errors"></ul>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="btn-primary" id="convert-submit">
+            <svg class="icon icon--convert btn-icon btn-icon--idle" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path class="icon__arrow" d="M4 12h11m0 0-4-4m4 4-4 4" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/>
+              <path class="icon__spine" d="M20 6v12" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/>
+            </svg>
+            <svg class="icon icon--busy btn-icon btn-icon--busy" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3.5a8.5 8.5 0 1 1-7.36 4.25" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/>
+            </svg>
+            <span>Convert</span>
+          </button>
+        </div>
+
+        <ul
+          class="list-disc pl-5 text-sm text-danger {% if not form.non_field_errors %}hidden{% endif %}"
+          id="form-errors"
+        >
+          {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      </form>
+    </section>
+
+    <aside class="convert-layout__aside" aria-labelledby="supported-heading">
+      <div
+        class="job-pair"
+        data-convert-stage
+        data-mode="idle"
+        aria-label="Format preview"
+      >
+        <div class="job-pair__track" aria-hidden="true">
+          <div class="job-pair__glow" data-stage-glow></div>
+          <span class="job-pair__badge is-source" data-stage-source-card>
+            <span class="job-pair__label">From</span>
+            <span class="job-pair__ext" data-stage-source>MD</span>
+          </span>
+          <span class="job-pair__stream" data-stage-stream></span>
+          <span class="job-pair__badge is-target" data-stage-target-card>
+            <span class="job-pair__label">To</span>
+            <span class="job-pair__ext" data-stage-target>PDF</span>
+          </span>
+        </div>
+        <p class="job-pair__status" data-stage-status>Formats transform continuously</p>
+      </div>
+
+      <h2 id="supported-heading" class="mt-6 font-display text-base font-bold tracking-tight text-ink sm:text-lg">
+        Supported conversions
+      </h2>
+      <p class="mt-1 text-sm text-mist">
+        Available source → target pairs for this build.
+      </p>
+      <ul class="pair-list mt-4">
+        {% for pair in pairs %}
+          <li class="pair-list__item pair-chip">
+            <span class="pair-list__route">
+              <code>{{ pair.source }}</code>
+              <span class="text-mist" aria-hidden="true">→</span>
+              <code>{{ pair.target }}</code>
+            </span>
+            {% if pair.best_effort %}
+              <span class="pair-list__hint">best effort</span>
+            {% endif %}
+          </li>
+        {% empty %}
+          <li class="text-sm text-mist">No conversion pairs registered.</li>
+        {% endfor %}
+      </ul>
+    </aside>
+  </div>
+
+  <section
+    id="view-converting"
+    class="convert-converting"
+    data-convert-view="converting"
+    hidden
+    aria-live="polite"
+  >
+    <p class="page-kicker is-warn">Converting</p>
+    <h1 class="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+      Converting your file
+    </h1>
+    <p class="page-lead mt-1.5 text-sm text-mist sm:text-base">
+      Hang tight — this usually takes a few seconds.
+    </p>
+    <div
+      class="job-pair mt-6"
+      data-convert-stage
+      data-mode="idle"
+      aria-label="Active conversion"
+    >
+      <div class="job-pair__track" aria-hidden="true">
+        <div class="job-pair__glow" data-stage-glow></div>
+        <span class="job-pair__badge is-source" data-stage-source-card>
+          <span class="job-pair__label">From</span>
+          <span class="job-pair__ext" data-stage-source>MD</span>
+        </span>
+        <span class="job-pair__stream" data-stage-stream></span>
+        <span class="job-pair__badge is-target" data-stage-target-card>
+          <span class="job-pair__label">To</span>
+          <span class="job-pair__ext" data-stage-target>PDF</span>
+        </span>
+      </div>
+      <p class="job-pair__status" data-stage-status>Converting file…</p>
+    </div>
+  </section>
+
+  <div id="view-result" data-convert-view="result" hidden>
+    {% include "converter/partials/job_panel.html" %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/convert-stage.js' %}"></script>
+<script src="{% static 'js/job.js' %}"></script>
+<script src="{% static 'js/convert.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}History — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+<section class="history-panel" aria-labelledby="history-heading">
+  <p class="page-kicker">History</p>
+  <h1 id="history-heading" class="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+    Recent conversions
+  </h1>
+  <p class="page-lead mt-1.5 max-w-xl text-sm text-mist sm:text-base">
+    Visible only in this browser session. Files still expire on schedule.
+  </p>
+
+  {% if jobs %}
+    <ul class="history-list mt-7">
+      {% for job in jobs %}
+        <li class="history-row">
+          <div class="history-row__main">
+            <p class="history-row__name">{{ job.original_name }}</p>
+            <p class="history-row__meta">
+              <code class="meta-code">{{ job.source_format }} → {{ job.target_format }}</code>
+              <span class="history-row__time">{{ job.created_at }}</span>
+            </p>
+          </div>
+          <div class="history-row__aside">
+            <span
+              class="page-kicker history-row__status
+                {% if job.status == 'done' %}is-ok
+                {% elif job.status == 'failed' %}is-danger
+                {% else %}is-warn{% endif %}"
+            >
+              {{ job.get_status_display }}
+            </span>
+            <a class="btn-ghost" href="{% url 'converter:job_detail' job.id %}">
+              Open
+              <svg class="icon icon--external btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path class="icon__arrow" d="M9 6h9v9M18 6 6 18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav class="pagination mt-6" aria-label="History pages">
+        {% if page_obj.has_previous %}
+          <a class="btn-secondary" href="?page={{ page_obj.previous_page_number }}">
+            Previous
+          </a>
+        {% else %}
+          <span class="btn-secondary is-disabled" aria-disabled="true">Previous</span>
+        {% endif %}
+
+        <p class="pagination__status">
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </p>
+
+        {% if page_obj.has_next %}
+          <a class="btn-secondary" href="?page={{ page_obj.next_page_number }}">
+            Next
+          </a>
+        {% else %}
+          <span class="btn-secondary is-disabled" aria-disabled="true">Next</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+
+    <div class="mt-7">
+      <a class="btn-secondary" href="{% url 'converter:home' %}">
+        Convert another
+      </a>
+    </div>
+  {% else %}
+    <div class="history-empty mt-7">
+      <p class="history-empty__text">No conversions in this session yet.</p>
+      <a class="btn-primary mt-4" href="{% url 'converter:home' %}">
+        Convert a file
+      </a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

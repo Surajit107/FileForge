@@ -1,0 +1,153 @@
+<section
+  class="job-panel"
+  aria-labelledby="job-heading"
+  id="job-panel"
+  {% if job %}
+  data-status-url="{% url 'converter:job_status' job.id %}"
+  data-status="{{ job.status }}"
+  {% else %}
+  data-status-url=""
+  data-status="pending"
+  {% endif %}
+>
+  <p
+    class="page-kicker job-result__eyebrow {% if job and job.status == 'done' %}is-ok{% elif job and job.status == 'failed' %}is-danger{% else %}is-warn{% endif %}"
+    id="job-status-label"
+  >
+    {% if progress %}{{ progress }}{% else %}—{% endif %}
+  </p>
+
+  <h1 id="job-heading" class="job-result__title font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
+    {% if job %}
+      {% if job.status == 'done' %}
+        Your file is ready
+      {% elif job.status == 'failed' %}
+        Conversion failed
+      {% else %}
+        Converting your file
+      {% endif %}
+    {% else %}
+      Conversion result
+    {% endif %}
+  </h1>
+
+  <p class="page-lead job-result__lead mt-1.5 text-sm text-mist sm:text-base" id="job-lead">
+    {% if job %}
+      {% if job.status == 'done' %}
+        {{ job.original_name }} → {{ job.target_format|upper }}
+      {% elif job.status == 'failed' %}
+        We couldn’t finish converting {{ job.original_name }}.
+      {% else %}
+        {{ job.original_name }} · {{ job.source_format|upper }} → {{ job.target_format|upper }}
+      {% endif %}
+    {% else %}
+      Waiting for conversion…
+    {% endif %}
+  </p>
+
+  <div
+    class="job-pair mt-5"
+    data-convert-stage
+    {% if job %}
+    data-locked="true"
+    data-mode="{% if job.status == 'done' or job.status == 'failed' %}idle{% else %}converting{% endif %}"
+    data-source-format="{{ job.source_format }}"
+    data-target-format="{{ job.target_format }}"
+    {% else %}
+    data-mode="idle"
+    data-source-format=""
+    data-target-format=""
+    {% endif %}
+    aria-label="Conversion formats"
+  >
+    <div class="job-pair__track" aria-hidden="true">
+      <div class="job-pair__glow" data-stage-glow></div>
+      <span class="job-pair__badge is-source" data-stage-source-card>
+        <span class="job-pair__label">From</span>
+        <span class="job-pair__ext" data-stage-source>{% if job %}{{ job.source_format|upper }}{% else %}—{% endif %}</span>
+      </span>
+      <span class="job-pair__stream" data-stage-stream></span>
+      <span class="job-pair__badge is-target" data-stage-target-card>
+        <span class="job-pair__label">To</span>
+        <span class="job-pair__ext" data-stage-target>{% if job %}{{ job.target_format|upper }}{% else %}—{% endif %}</span>
+      </span>
+    </div>
+    <p class="job-pair__status" data-stage-status>
+      {% if job %}
+        {% if job.status == 'done' %}
+          Conversion complete
+        {% elif job.status == 'failed' %}
+          Conversion stopped
+        {% else %}
+          Converting file…
+        {% endif %}
+      {% else %}
+        Waiting for conversion…
+      {% endif %}
+    </p>
+  </div>
+
+  <div class="action-row mt-6">
+    <div class="{% if not job or not job.is_downloadable %}hidden{% endif %}" id="job-download">
+      <a
+        class="btn-primary"
+        id="job-download-link"
+        href="{% if job and job.is_downloadable %}{% url 'converter:download' job.id %}{% else %}#{% endif %}"
+      >
+        <svg class="icon icon--download btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path class="icon__arrow" d="M12 4v11m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="icon__tray" d="M4 18.5V20a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1.5" stroke="currentColor" stroke-width="1.85" stroke-linecap="round"/>
+        </svg>
+        <span id="job-download-label">
+          {% if job %}Download {{ job.target_format|upper }}{% else %}Download{% endif %}
+        </span>
+      </a>
+    </div>
+
+    <a class="btn-secondary" href="{% url 'converter:home' %}" id="job-convert-another" data-reset-convert>
+      Convert another
+    </a>
+
+    <a class="btn-ghost action-row__link" href="{% url 'converter:history' %}">
+      History
+    </a>
+  </div>
+
+  <p class="alert-error mt-5 {% if not job or job.status != 'failed' %}hidden{% endif %}" role="alert" id="job-error">
+    {% if job %}{{ job.error_message }}{% endif %}
+  </p>
+
+  <ol class="progress-rail mt-7" aria-label="Conversion progress">
+    <li class="progress-step" data-step="pending">
+      <span class="progress-step__dot" aria-hidden="true"></span>
+      <span class="progress-step__label">Queued</span>
+    </li>
+    <li class="progress-step" data-step="processing">
+      <span class="progress-step__dot" aria-hidden="true"></span>
+      <span class="progress-step__label">Converting</span>
+    </li>
+    <li class="progress-step" data-step="done">
+      <span class="progress-step__dot" aria-hidden="true"></span>
+      <span class="progress-step__label">Ready</span>
+    </li>
+  </ol>
+
+  <dl class="job-meta mt-6">
+    <div class="job-meta__item">
+      <dt>File</dt>
+      <dd id="job-filename">{% if job %}{{ job.original_name }}{% endif %}</dd>
+    </div>
+    <div class="job-meta__item">
+      <dt>Conversion</dt>
+      <dd>
+        <code class="meta-code" id="job-pair">
+          {% if job %}{{ job.source_format }} → {{ job.target_format }}{% endif %}
+        </code>
+      </dd>
+    </div>
+    <div class="job-meta__item">
+      <dt>Expires</dt>
+      <dd id="job-expires">{% if job %}{{ job.expires_at }}{% endif %}</dd>
+    </div>
+  </dl>
+</section>

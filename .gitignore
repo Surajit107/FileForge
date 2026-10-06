@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+# uv.lock is committed (reproducible installs)
+# machine-local uv config must NOT live in this repo
+
+# Django
+db.sqlite3
+media/
+media_test/
+staticfiles/
+*.log
+logs/*.log
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Test / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Local artifacts
+_test_out.*
+*.pdf
+*.docx
+!docs/**
+!samples/**
+!samples/**/*
+
+# Node / Tailwind
+node_modules/

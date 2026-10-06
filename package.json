@@ -1,0 +1,17 @@
+{
+  "name": "fileforge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FileForge frontend tooling (Tailwind CSS build).",
+  "scripts": {
+    "css:build": "npx @tailwindcss/cli -i ./static/src/input.css -o ./static/css/app.css --minify",
+    "css:watch": "npx @tailwindcss/cli -i ./static/src/input.css -o ./static/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
+  },
+  "dependencies": {
+    "animejs": "^4.5.0"
+  }
+}

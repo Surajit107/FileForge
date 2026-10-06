@@ -1,0 +1,111 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#18181b">
+  <meta name="description" content="{{ SITE_NAME }} — personal online file converter.">
+  <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-32.png' %}" sizes="32x32">
+  <link rel="icon" type="image/png" href="{% static 'img/favicon-16.png' %}" sizes="16x16">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script>
+    document.documentElement.classList.add("js-motion");
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.documentElement.classList.add("reduce-motion");
+    }
+  </script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="site-shell" {% block body_attrs %}{% endblock %}>
+  <div
+    id="intro-splash"
+    class="intro-splash"
+    hidden
+    aria-hidden="true"
+    data-site-name="{{ SITE_NAME }}"
+  >
+    <div class="intro-splash__beam" data-intro-beam aria-hidden="true"></div>
+    <div class="intro-splash__stage">
+      <div class="intro-splash__sheets" aria-hidden="true">
+        <div class="intro-splash__sheet intro-splash__sheet--source" data-intro-sheet-source>
+          <span class="intro-splash__sheet-lines"></span>
+          <span class="intro-splash__sheet-badge">MD</span>
+        </div>
+        <div class="intro-splash__sheet intro-splash__sheet--target" data-intro-sheet-target>
+          <span class="intro-splash__sheet-lines"></span>
+          <span class="intro-splash__sheet-badge">PDF</span>
+        </div>
+      </div>
+      <div class="intro-splash__formats" data-intro-formats aria-hidden="true">
+        <span class="intro-splash__chip" data-intro-chip>MD</span>
+        <span class="intro-splash__chip" data-intro-chip>DOCX</span>
+        <span class="intro-splash__chip" data-intro-chip>PDF</span>
+      </div>
+      <div class="intro-splash__brand-wrap">
+        <p class="intro-splash__brand" data-intro-brand>{{ SITE_NAME }}</p>
+      </div>
+      <p class="intro-splash__tag" data-intro-tag>Convert anything. Keep it personal.</p>
+    </div>
+    <button type="button" class="intro-splash__skip" data-intro-skip hidden>Skip</button>
+  </div>
+  <div class="ambient-orb" aria-hidden="true"></div>
+  <div class="site-frame">
+    <header class="site-header">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <a class="brand-mark" href="{% url 'converter:home' %}">{{ SITE_NAME }}</a>
+          <p class="mt-1 text-sm text-mist sm:text-base">
+            Personal file converter
+          </p>
+        </div>
+        <nav class="flex items-center gap-4 text-sm font-semibold" aria-label="Primary">
+          <a class="nav-link" href="{% url 'converter:home' %}">
+            <svg class="icon icon--convert" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path class="icon__arrow" d="M4 12h11m0 0-4-4m4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              <path class="icon__spine" d="M20 6v12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+            </svg>
+            Convert
+          </a>
+          <a class="nav-link" href="{% url 'converter:history' %}">
+            <svg class="icon icon--list" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path class="icon__line" d="M4 6h16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+              <path class="icon__line" d="M4 12h16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+              <path class="icon__line" d="M4 18h10" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+            </svg>
+            History
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    {% if messages %}
+      <ul class="mb-4 grid list-none gap-2 p-0" role="status" aria-live="polite">
+        {% for message in messages %}
+          <li class="message message-{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <main class="panel-enter site-panel">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="mt-4 text-sm text-mist">
+      <p>Files auto-expire after processing.</p>
+    </footer>
+  </div>
+
+  <script src="{% static 'js/vendor/anime.umd.min.js' %}"></script>
+  <script src="{% static 'js/intro-splash.js' %}"></script>
+  <script src="{% static 'js/site-motion.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

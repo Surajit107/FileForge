@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Job {{ job.id }} — {{ SITE_NAME }}{% endblock %}
+
+{% block content %}
+{% include "converter/partials/job_panel.html" with job=job progress=progress %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/convert-stage.js' %}"></script>
+<script src="{% static 'js/job.js' %}"></script>
+{% endblock %}

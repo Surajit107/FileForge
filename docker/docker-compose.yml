@@ -1,0 +1,75 @@
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DATABASE_URL: postgres://fileforge:fileforge@db:5432/fileforge
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CONVERSION_SYNC_ENABLED: "False"
+      ALLOWED_HOSTS: localhost,127.0.0.1,web
+      SECURE_SSL_REDIRECT: "False"
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: celery -A config worker -l info
+    env_file:
+      - ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DATABASE_URL: postgres://fileforge:fileforge@db:5432/fileforge
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      CONVERSION_SYNC_ENABLED: "False"
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      - db
+      - redis
+
+  beat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: celery -A config beat -l info
+    env_file:
+      - ../.env
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.production
+      DATABASE_URL: postgres://fileforge:fileforge@db:5432/fileforge
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+    depends_on:
+      - redis
+      - db
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: fileforge
+      POSTGRES_USER: fileforge
+      POSTGRES_PASSWORD: fileforge
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  media_data:
