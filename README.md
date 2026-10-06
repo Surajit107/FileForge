@@ -20,6 +20,7 @@ Roadmap: [docs/PLAN.md](docs/PLAN.md)
 
 - **Python** 3.11+ (3.12 / 3.14 also fine) — prefer an install on your programming drive
 - **[uv](https://docs.astral.sh/uv/)** (creates/manages project `.venv` and lockfile)
+- **Node.js** (for `npm run quickstart` and Tailwind CSS builds)
 - **Git** (optional)
 - **Docker** + Docker Compose (optional)
 
@@ -38,7 +39,15 @@ uv export --no-hashes --no-emit-project --group prod -o requirements.txt
 
 ## Quick start (first time)
 
-Copy-paste from the repository root (`FILE_CONVERTER/`):
+From the repository root (`FileForge/`), with **uv** and **Node.js** on PATH:
+
+```bash
+npm run quickstart
+```
+
+That runs `uv sync`, creates `.env` from `.env.example` if missing, migrates, then starts the server. Open **http://127.0.0.1:8000/** when it is up. Stop with `Ctrl + C`.
+
+### Manual (no npm)
 
 **Windows (Git Bash):**
 
@@ -82,12 +91,6 @@ Or skip activation and use `uv run` for any command:
 uv run python main.py migrate
 uv run python main.py runserver
 ```
-
-When the server starts, open:
-
-**http://127.0.0.1:8000/**
-
-Stop the server with `Ctrl + C`.
 
 ### uv locations on this machine (P: programming drive)
 
@@ -147,7 +150,7 @@ celery -A config beat -l info
 python main.py runserver
 ```
 
-`docx → pdf` requires LibreOffice (`soffice` on PATH). Without it, that pair fails with a clear error. `uv` does **not** install LibreOffice.
+`docx → pdf` requires LibreOffice (`soffice`). Local `uv`/Windows setup does **not** install it — that pair will fail locally. The Docker image installs LibreOffice so the pair works on the server after rebuild/redeploy.
 
 ---
 
@@ -424,6 +427,8 @@ docker compose -f docker/docker-compose.yml down
 
 Docker still installs from `requirements/production.txt` (exported from `uv.lock`). Re-export after changing deps.
 
+The image also installs **LibreOffice** (`libreoffice-writer`) for `docx → pdf`. Redeploy/rebuild after Dockerfile changes so the server picks it up.
+
 ---
 
 ## 9. Troubleshooting
@@ -436,7 +441,8 @@ Docker still installs from `requirements/production.txt` (exported from `uv.lock
 | Port 8000 busy | `python main.py runserver 8001` |
 | Upload rejected | Use a `.md` file; check upload limits in `.env` |
 | Stale files | `python main.py purge_expired_jobs` |
-| `docx → pdf` fails | Install LibreOffice; `uv` cannot provide `soffice` |
+| `docx → pdf` fails locally | Expected — LibreOffice is not part of local setup. Use Docker/server for this pair |
+| `docx → pdf` fails on server | Rebuild/redeploy the Docker image so LibreOffice is installed |
 
 ---
 

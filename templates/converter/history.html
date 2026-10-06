@@ -68,14 +68,14 @@
     {% endif %}
 
     <div class="mt-7">
-      <a class="btn-secondary" href="{% url 'converter:home' %}">
+      <a class="btn-secondary w-full justify-center sm:w-auto" href="{% url 'converter:home' %}">
         Convert another
       </a>
     </div>
   {% else %}
     <div class="history-empty mt-7">
       <p class="history-empty__text">No conversions in this session yet.</p>
-      <a class="btn-primary mt-4" href="{% url 'converter:home' %}">
+      <a class="btn-primary mt-4 w-full sm:w-auto" href="{% url 'converter:home' %}">
         Convert a file
       </a>
     </div>

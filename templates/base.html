@@ -8,10 +8,12 @@
   <meta name="theme-color" content="#18181b">
   <meta name="description" content="{{ SITE_NAME }} — personal online file converter.">
   <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
-  <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
-  <link rel="icon" type="image/png" href="{% static 'img/favicon-32.png' %}" sizes="32x32">
-  <link rel="icon" type="image/png" href="{% static 'img/favicon-16.png' %}" sizes="16x16">
-  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+  <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
+  <link rel="icon" href="{% static 'img/favicon.png' %}" type="image/png" sizes="512x512">
+  <link rel="icon" href="{% static 'img/favicon-192.png' %}" type="image/png" sizes="192x192">
+  <link rel="icon" href="{% static 'img/favicon-32.png' %}" type="image/png" sizes="32x32">
+  <link rel="shortcut icon" href="{% static 'img/favicon.ico' %}" sizes="any">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}" sizes="180x180">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
@@ -32,22 +34,34 @@
     aria-hidden="true"
     data-site-name="{{ SITE_NAME }}"
   >
-    <div class="intro-splash__beam" data-intro-beam aria-hidden="true"></div>
     <div class="intro-splash__stage">
-      <div class="intro-splash__sheets" aria-hidden="true">
-        <div class="intro-splash__sheet intro-splash__sheet--source" data-intro-sheet-source>
-          <span class="intro-splash__sheet-lines"></span>
-          <span class="intro-splash__sheet-badge">MD</span>
+      <div class="intro-splash__forge" data-intro-forge aria-hidden="true">
+        <div class="intro-splash__sheet" data-intro-sheet>
+          <svg class="intro-splash__sheet-svg" viewBox="0 0 160 220" aria-hidden="true">
+            <defs>
+              <linearGradient id="intro-sheet-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop class="intro-splash__stop-a" offset="0%" stop-color="#2c2c2c"/>
+                <stop class="intro-splash__stop-b" offset="100%" stop-color="#181818"/>
+              </linearGradient>
+            </defs>
+            {# Favicon-style file: one body path + light fold tab (no crease stroke) #}
+            <path
+              class="intro-splash__sheet-body"
+              d="M32 14h78l36 36v132a16 16 0 0 1-16 16H32a16 16 0 0 1-16-16V30A16 16 0 0 1 32 14z"
+            />
+            <path
+              class="intro-splash__sheet-flap"
+              d="M110 14v28a8 8 0 0 0 8 8h28L110 14z"
+            />
+          </svg>
+          <div class="intro-splash__sheet-content">
+            <span class="intro-splash__sheet-scan" data-intro-scan>
+              <span class="intro-splash__scan-halo"></span>
+              <span class="intro-splash__scan-core"></span>
+            </span>
+            <span class="intro-splash__sheet-flash" data-intro-flash></span>
+          </div>
         </div>
-        <div class="intro-splash__sheet intro-splash__sheet--target" data-intro-sheet-target>
-          <span class="intro-splash__sheet-lines"></span>
-          <span class="intro-splash__sheet-badge">PDF</span>
-        </div>
-      </div>
-      <div class="intro-splash__formats" data-intro-formats aria-hidden="true">
-        <span class="intro-splash__chip" data-intro-chip>MD</span>
-        <span class="intro-splash__chip" data-intro-chip>DOCX</span>
-        <span class="intro-splash__chip" data-intro-chip>PDF</span>
       </div>
       <div class="intro-splash__brand-wrap">
         <p class="intro-splash__brand" data-intro-brand>{{ SITE_NAME }}</p>
@@ -59,14 +73,14 @@
   <div class="ambient-orb" aria-hidden="true"></div>
   <div class="site-frame">
     <header class="site-header">
-      <div class="flex flex-wrap items-end justify-between gap-3">
+      <div class="site-header__bar">
         <div>
           <a class="brand-mark" href="{% url 'converter:home' %}">{{ SITE_NAME }}</a>
           <p class="mt-1 text-sm text-mist sm:text-base">
             Personal file converter
           </p>
         </div>
-        <nav class="flex items-center gap-4 text-sm font-semibold" aria-label="Primary">
+        <nav class="site-header__nav" aria-label="Primary">
           <a class="nav-link" href="{% url 'converter:home' %}">
             <svg class="icon icon--convert" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path class="icon__arrow" d="M4 12h11m0 0-4-4m4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>

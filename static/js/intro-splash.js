@@ -1,8 +1,8 @@
 (() => {
   /**
-   * Conversion-themed intro: source/target sheets collide through an ember beam,
-   * format chips flash, brand clip-reveals, then soft exit.
-   * Plays every full load of pages that opt in via data-intro-splash.
+   * Conversion intro: blank file sheet lands → ember scan → boom
+   * transmute, then brand. Timed so the sequence can be read.
+   * Plays on pages that opt in via data-intro-splash.
    * @param {typeof window.anime} api
    * @param {{ reduceMotion: boolean }} options
    * @returns {Promise<void>}
@@ -24,21 +24,20 @@
         return Promise.resolve();
       }
 
-      const { animate, createTimeline, stagger, utils } = api;
-      if (!animate || !createTimeline || !stagger || !utils) {
+      const { animate, createTimeline, utils } = api;
+      if (!animate || !createTimeline || !utils) {
         root.remove();
         return Promise.resolve();
       }
 
-      const beam = root.querySelector("[data-intro-beam]");
-      const source = root.querySelector("[data-intro-sheet-source]");
-      const target = root.querySelector("[data-intro-sheet-target]");
-      const chips = root.querySelectorAll("[data-intro-chip]");
+      const sheet = root.querySelector("[data-intro-sheet]");
+      const scan = root.querySelector("[data-intro-scan]");
+      const flash = root.querySelector("[data-intro-flash]");
       const brandEl = root.querySelector("[data-intro-brand]");
       const tagEl = root.querySelector("[data-intro-tag]");
       const skipBtn = root.querySelector("[data-intro-skip]");
 
-      if (!source || !target || !brandEl) {
+      if (!sheet || !brandEl) {
         root.remove();
         return Promise.resolve();
       }
@@ -46,17 +45,21 @@
       const brandText = (root.dataset.siteName || brandEl.textContent || "").trim();
       brandEl.textContent = brandText;
 
-      utils.set(beam, { opacity: 0, scaleY: 0.08, scaleX: 1 });
-      utils.set(source, { opacity: 0, translateX: "-42vw", rotate: -18, scale: 0.86 });
-      utils.set(target, { opacity: 0, translateX: "42vw", rotate: 18, scale: 0.86 });
-      utils.set(chips, { opacity: 0, translateY: 18, scale: 0.8 });
-      utils.set(brandEl, {
+      const scanTravel = () => {
+        const height = sheet.getBoundingClientRect().height || 220;
+        return Math.max(140, height * 0.78);
+      };
+
+      utils.set(sheet, {
         opacity: 0,
         translateY: 28,
-        filter: "blur(14px)",
-        clipPath: "inset(0 100% 0 0)",
+        scale: 0.94,
+        rotate: -2,
       });
-      if (tagEl) utils.set(tagEl, { opacity: 0, translateY: 14 });
+      if (scan) utils.set(scan, { opacity: 0, translateY: 0 });
+      if (flash) utils.set(flash, { opacity: 0, scale: 0.75 });
+      utils.set(brandEl, { opacity: 0, translateY: 14, scale: 0.98 });
+      if (tagEl) utils.set(tagEl, { opacity: 0, translateY: 8 });
 
       root.hidden = false;
       root.classList.add("is-active");
@@ -87,10 +90,8 @@
           if (settled) return;
           animate(root, {
             opacity: [1, 0],
-            translateY: [0, -24],
-            filter: ["blur(0px)", "blur(8px)"],
-            duration: 560,
-            ease: "inCubic",
+            duration: 620,
+            ease: "inOutCubic",
             onComplete: finish,
           });
         };
@@ -99,119 +100,95 @@
           skipBtn.addEventListener("click", () => exit(), { once: true });
         }
 
+        const markConverted = () => {
+          sheet.classList.add("is-converted");
+        };
+
+        const SCAN_MS = 1700;
+        const travel = scanTravel();
+
         tl = createTimeline({
-          defaults: { ease: "outExpo" },
+          defaults: { ease: "outCubic" },
           onComplete: exit,
         });
 
-        tl.add(beam, {
+        // 1. File appears — soft settle, then brief hold
+        tl.add(sheet, {
           opacity: [0, 1],
-          scaleY: [0.08, 1],
-          duration: 640,
+          translateY: [28, 0],
+          scale: [0.94, 1],
+          rotate: [-2, 0],
+          duration: 780,
           ease: "outCubic",
         });
 
+        tl.add(sheet, { duration: 380 });
+
+        // 2. Ember scan across blank page
+        if (scan) {
+          tl.add(scan, {
+            opacity: [0, 1, 1, 0],
+            translateY: [12, travel * 0.4, travel, travel + 6],
+            duration: SCAN_MS,
+            ease: "inOutSine",
+          });
+        }
+
         tl.add(
-          source,
+          sheet,
           {
-            opacity: [0, 1],
-            translateX: ["-42vw", "-4.5rem"],
-            rotate: [-18, -8],
-            scale: [0.86, 1],
-            duration: 820,
-            ease: "outExpo",
+            duration: SCAN_MS,
+            ease: "linear",
+            onBegin: () => {
+              sheet.classList.add("is-scanning");
+            },
+            onComplete: () => {
+              sheet.classList.remove("is-scanning");
+            },
+          },
+          scan ? `-=${SCAN_MS}` : undefined
+        );
+
+        // Beat after scan before convert
+        tl.add(sheet, { duration: 220 });
+
+        // 3. Convert flash
+        if (flash) {
+          tl.add(flash, {
+            opacity: [0, 0.85, 0],
+            scale: [0.82, 1.12, 1.28],
+            duration: 560,
+            ease: "inOutCubic",
+            onBegin: markConverted,
+          });
+        } else {
+          tl.add(sheet, {
+            duration: 1,
+            onBegin: markConverted,
+          });
+        }
+
+        tl.add(
+          sheet,
+          {
+            scale: [1, 1.04, 1],
+            duration: 640,
+            ease: "outCubic",
           },
           "-=420"
         );
 
-        tl.add(
-          target,
-          {
-            opacity: [0, 1],
-            translateX: ["42vw", "4.5rem"],
-            rotate: [18, 8],
-            scale: [0.86, 1],
-            duration: 820,
-            ease: "outExpo",
-          },
-          "<"
-        );
-
-        tl.add(
-          [source, target],
-          {
-            scale: [1, 0.94, 1.02, 1],
-            duration: 520,
-            ease: "outBack(1.6)",
-          },
-          "-=120"
-        );
-
-        tl.add(
-          beam,
-          {
-            scaleX: [1, 14, 1],
-            opacity: [1, 1, 0.55],
-            duration: 640,
-            ease: "inOutCubic",
-          },
-          "-=480"
-        );
-
-        tl.add(
-          chips,
-          {
-            opacity: [0, 1],
-            translateY: [18, 0],
-            scale: [0.8, 1.08, 1],
-            duration: 520,
-            ease: "outBack(1.7)",
-          },
-          stagger(70, { start: "-=360" })
-        );
-
-        tl.add(
-          source,
-          {
-            opacity: [1, 0],
-            translateX: ["-4.5rem", "-18vw"],
-            rotate: [-8, -22],
-            filter: ["blur(0px)", "blur(8px)"],
-            duration: 560,
-            ease: "inCubic",
-          },
-          "+=80"
-        );
-
-        tl.add(
-          target,
-          {
-            opacity: [1, 0],
-            translateX: ["4.5rem", "18vw"],
-            rotate: [8, 22],
-            filter: ["blur(0px)", "blur(8px)"],
-            duration: 560,
-            ease: "inCubic",
-          },
-          "<"
-        );
-
+        // 4. Brand + tag
         tl.add(
           brandEl,
           {
             opacity: [0, 1],
-            translateY: [28, 0],
-            filter: ["blur(14px)", "blur(0px)"],
-            // Negative right inset keeps glyph overhangs (final "e") visible
-            // after the wipe; then clear clip-path so nothing stays clipped.
-            clipPath: ["inset(0 100% 0 0)", "inset(0 -3% 0 0)"],
-            duration: 780,
-            ease: "outExpo",
-            onComplete: () => {
-              utils.set(brandEl, { clipPath: "none" });
-            },
+            translateY: [14, 0],
+            scale: [0.98, 1],
+            duration: 720,
+            ease: "outCubic",
           },
-          "-=420"
+          "-=120"
         );
 
         if (tagEl) {
@@ -219,36 +196,15 @@
             tagEl,
             {
               opacity: [0, 1],
-              translateY: [14, 0],
-              duration: 480,
+              translateY: [8, 0],
+              duration: 560,
               ease: "outCubic",
             },
-            "-=360"
+            "-=420"
           );
         }
 
-        tl.add(
-          chips,
-          {
-            opacity: [1, 0],
-            translateY: [0, -10],
-            scale: [1, 0.9],
-            duration: 360,
-            ease: "inCubic",
-          },
-          stagger(40, { start: "+=160" })
-        );
-
-        tl.add(
-          beam,
-          {
-            opacity: [0.55, 0],
-            scaleY: [1, 0.2],
-            duration: 420,
-            ease: "inCubic",
-          },
-          "-=280"
-        );
+        tl.add(sheet, { duration: 1100 });
       });
     },
   };
