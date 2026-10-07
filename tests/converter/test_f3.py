@@ -118,6 +118,42 @@ class ImageAndBatchTests(TestCase):
             404,
         )
 
+    def test_multi_file_pack_to_zip(self):
+        import zipfile
+        from io import BytesIO
+
+        response = self.client.post(
+            reverse("converter:home"),
+            {
+                "source_file": [
+                    _png_upload("alpha.png", (10, 20, 30)),
+                    _png_upload("beta.png", (200, 100, 50)),
+                ],
+                "target_format": "zip",
+            },
+            HTTP_ACCEPT="application/json",
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        body = response.json()
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["job"]["kind"], "batch")
+        self.assertEqual(body["job"]["target_format"], "zip")
+        self.assertEqual(body["job"]["status"], ConversionBatch.Status.DONE)
+        self.assertEqual(body["job"]["file_count"], 2)
+        self.assertEqual(body["job"]["done_count"], 2)
+        self.assertTrue(body["job"]["is_downloadable"])
+
+        batch = ConversionBatch.objects.get()
+        self.assertEqual(batch.jobs.count(), 0)
+        self.assertTrue(batch.zip_file)
+
+        download = self.client.get(body["job"]["download_url"])
+        self.assertEqual(download.status_code, 200)
+        with zipfile.ZipFile(BytesIO(b"".join(download.streaming_content))) as archive:
+            names = set(archive.namelist())
+            self.assertEqual(names, {"alpha.png", "beta.png"})
+
     @override_settings(CONVERSION_RATE_LIMIT=2, CONVERSION_RATE_WINDOW_SEC=3600)
     def test_rate_limit_returns_429(self):
         cache.clear()

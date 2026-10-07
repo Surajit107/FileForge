@@ -126,6 +126,35 @@ class ConvertViewTests(TestCase):
         targets = {item["format"] for item in response.json()["targets"]}
         self.assertEqual(targets, {"txt", "md", "docx"})
 
+    def test_formats_api_empty_state_lists_all_targets(self):
+        response = self.client.get(reverse("converter:formats_api"))
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["source"], "")
+        targets = {item["format"] for item in payload["targets"]}
+        self.assertTrue({"pdf", "docx", "png", "jpg", "webp", "xlsx", "zip"}.issubset(targets))
+
+    def test_formats_api_multi_file_includes_zip_pack(self):
+        response = self.client.get(
+            reverse("converter:formats_api") + "?filename=one.png&filename=two.jpg"
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["sources"], ["png", "jpg"])
+        targets = {item["format"] for item in payload["targets"]}
+        self.assertTrue({"zip", "tar", "webp", "pdf"}.issubset(targets))
+        self.assertNotIn("docx", targets)
+
+    def test_convert_page_shows_full_target_catalog(self):
+        response = self.client.get(reverse("converter:home"))
+        self.assertEqual(response.status_code, 200)
+        # Empty-state dropdown must advertise breadth, not only Markdown targets.
+        self.assertContains(response, 'data-value="pdf"')
+        self.assertContains(response, 'data-value="png"')
+        self.assertContains(response, 'data-value="webp"')
+        self.assertContains(response, 'data-value="xlsx"')
+        self.assertContains(response, 'data-value="zip"')
+
     def test_healthcheck(self):
         response = self.client.get(reverse("healthcheck"))
         self.assertEqual(response.status_code, 200)

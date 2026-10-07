@@ -23,6 +23,7 @@ from apps.converter.services.access import (
 from apps.converter.services.batch import (
     batch_progress_label,
     create_and_run_batch,
+    create_and_run_pack,
     get_downloadable_batch,
 )
 from apps.converter.services.conversion import (
@@ -37,8 +38,17 @@ from apps.converter.services.downloads import (
     verify_download_token,
 )
 from apps.converter.services.history import history_page
-from apps.converter.services.rate_limit import RateLimitExceeded, check_conversion_rate_limit
-from engines.registry import detect_format_from_filename, list_pairs, targets_for
+from apps.converter.services.rate_limit import (
+    RateLimitExceeded,
+    check_conversion_rate_limit,
+)
+from engines.registry import (
+    detect_format_from_filename,
+    is_pack_operation,
+    list_pairs,
+    list_unique_targets,
+    targets_for_selection,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +95,13 @@ def serialize_batch(batch: ConversionBatch) -> dict:
     jobs = list(batch.jobs.order_by("created_at"))
     done = sum(1 for job in jobs if job.status == ConversionJob.Status.DONE)
     failed = sum(1 for job in jobs if job.status == ConversionJob.Status.FAILED)
-    source = jobs[0].source_format if jobs else ""
+    source = jobs[0].source_format if jobs else "pack"
+    # Pack batches have no per-file jobs; treat file_count as completed when done.
+    if not jobs and batch.status in {
+        ConversionBatch.Status.DONE,
+        ConversionBatch.Status.PARTIAL,
+    }:
+        done = batch.file_count
     return {
         "kind": "batch",
         "id": str(batch.id),
@@ -128,8 +144,19 @@ def convert_home(request):
             owner_session_key = ensure_session_key(request)
             uploads = form.cleaned_data["source_files"]
             target_format = form.cleaned_data["target_format"]
+            detected_sources = form.cleaned_data.get("detected_sources") or []
 
-            if len(uploads) == 1:
+            if is_pack_operation(detected_sources, target_format):
+                batch = create_and_run_pack(
+                    uploads=uploads,
+                    target_format=target_format,
+                    owner_session_key=owner_session_key,
+                )
+                payload = serialize_batch(batch)
+                result_status = batch.status
+                detail_name = "converter:batch_detail"
+                detail_kw = {"batch_id": batch.id}
+            elif len(uploads) == 1:
                 job = create_and_run(
                     uploaded=uploads[0],
                     target_format=target_format,
@@ -282,7 +309,12 @@ def batch_download(request, batch_id):
     except ConversionServiceError as exc:
         raise Http404(str(exc)) from exc
 
-    filename = f"fileforge-batch-{batch.id}.zip"
+    # Convert batches wrap outputs in ZIP. Pack batches are the archive itself.
+    if batch.jobs.exists():
+        extension = "zip"
+    else:
+        extension = {"tgz": "tar.gz"}.get(batch.target_format, batch.target_format or "zip")
+    filename = f"fileforge-batch-{batch.id}.{extension}"
     response = FileResponse(
         batch.zip_file.open("rb"),
         as_attachment=True,
@@ -308,15 +340,24 @@ def history(request):
 
 @require_GET
 def formats_api(request):
-    """Return available target formats for a source type or filename."""
-    source = request.GET.get("source", "")
-    if not source and request.GET.get("filename"):
-        source = detect_format_from_filename(request.GET["filename"]) or ""
+    """Return Convert-to options for the current selection.
 
-    pairs = targets_for(source) if source else []
+    Accepts repeated ``filename`` / ``source`` query params. Empty selection
+    returns the full catalog. Multi-file selection returns the intersection of
+    convertible targets plus pack formats (ZIP/TAR/…).
+    """
+    sources = [value for value in request.GET.getlist("source") if value]
+    if not sources:
+        for name in request.GET.getlist("filename"):
+            detected = detect_format_from_filename(name)
+            if detected:
+                sources.append(detected)
+
+    pairs = targets_for_selection(sources) if sources else list_unique_targets()
     return JsonResponse(
         {
-            "source": source,
+            "source": sources[0] if len(sources) == 1 else "",
+            "sources": sources,
             "targets": [
                 {
                     "format": pair.target,
