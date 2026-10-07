@@ -5,6 +5,7 @@ Views/services never branch on format strings — they ask the registry.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 from engines.archive import build_archive_engines
@@ -273,10 +274,145 @@ def list_sources() -> list[str]:
     return sorted({pair.source for pair in _PAIRS.values()})
 
 
+_CATEGORY_ORDER: dict[str, int] = {
+    "documents": 0,
+    "images": 1,
+    "spreadsheets": 2,
+    "slides": 3,
+    "archives": 4,
+    "audio": 5,
+    "video": 6,
+}
+
+
+def list_unique_targets() -> list[ConversionPair]:
+    """Distinct target formats for the empty-state Convert-to catalog.
+
+    Source-agnostic: ``best_effort`` is always False because that flag depends
+    on the uploaded source. Used before a file is selected; after upload
+    ``targets_for`` filters to the real pairs.
+    """
+    _bootstrap()
+    by_target: dict[str, ConversionPair] = {}
+    for pair in _PAIRS.values():
+        existing = by_target.get(pair.target)
+        if existing is None:
+            by_target[pair.target] = ConversionPair(
+                source="*",
+                target=pair.target,
+                label=pair.label,
+                category=pair.category,
+                best_effort=False,
+            )
+            continue
+        # Prefer a more specific / earlier category if labels collide.
+        if _CATEGORY_ORDER.get(pair.category, 99) < _CATEGORY_ORDER.get(
+            existing.category, 99
+        ):
+            by_target[pair.target] = ConversionPair(
+                source="*",
+                target=pair.target,
+                label=pair.label,
+                category=pair.category,
+                best_effort=False,
+            )
+
+    return sorted(
+        by_target.values(),
+        key=lambda p: (_CATEGORY_ORDER.get(p.category, 99), p.label.lower(), p.target),
+    )
+
+
 def targets_for(source: str) -> list[ConversionPair]:
     _bootstrap()
     normalized = normalize_format(source)
     return [pair for pair in _PAIRS.values() if pair.source == normalized]
+
+
+# Archive formats offered as "pack these uploads" when 2+ files are selected.
+PACKABLE_TARGETS: frozenset[str] = frozenset({"zip", "tar", "tgz", "7z"})
+
+_PACK_TARGET_META: tuple[tuple[str, str, bool], ...] = (
+    ("zip", "ZIP", False),
+    ("tar", "TAR", False),
+    ("tgz", "TAR.GZ", False),
+    ("7z", "7Z", True),
+)
+
+
+def pack_target_pairs() -> list[ConversionPair]:
+    """Synthetic pairs for multi-file archive packing (not per-file conversion)."""
+    return [
+        ConversionPair(
+            source="*",
+            target=target,
+            label=label,
+            category="archives",
+            best_effort=best_effort,
+        )
+        for target, label, best_effort in _PACK_TARGET_META
+    ]
+
+
+def has_pair(source: str, target: str) -> bool:
+    _bootstrap()
+    return (normalize_format(source), normalize_format(target)) in _PAIRS
+
+
+def is_pack_operation(sources: Sequence[str], target: str) -> bool:
+    """Multi-file archive pack when the target is not a valid per-file conversion."""
+    normalized_sources = [normalize_format(source) for source in sources if source]
+    if len(normalized_sources) < 2:
+        return False
+    normalized_target = normalize_format(target)
+    if normalized_target not in PACKABLE_TARGETS:
+        return False
+    return not all(has_pair(source, normalized_target) for source in normalized_sources)
+
+
+def targets_for_selection(sources: Sequence[str]) -> list[ConversionPair]:
+    """Resolve Convert-to options for zero, one, or many detected sources.
+
+    - No sources → full catalog
+    - One source → that source's pairs
+    - Many sources → intersection of pairs, plus pack targets (ZIP/TAR/…)
+    """
+    normalized = [normalize_format(source) for source in sources if source]
+    if not normalized:
+        return list_unique_targets()
+    if len(normalized) == 1:
+        return targets_for(normalized[0])
+
+    per_source = [
+        {pair.target: pair for pair in targets_for(source)} for source in normalized
+    ]
+    common = set(per_source[0])
+    for mapping in per_source[1:]:
+        common &= set(mapping)
+
+    by_target: dict[str, ConversionPair] = {}
+    for target in common:
+        matched = [mapping[target] for mapping in per_source]
+        base = matched[0]
+        by_target[target] = ConversionPair(
+            source="*",
+            target=target,
+            label=base.label,
+            category=base.category,
+            best_effort=any(pair.best_effort for pair in matched),
+        )
+
+    for pack in pack_target_pairs():
+        by_target.setdefault(pack.target, pack)
+
+    return sorted(
+        by_target.values(),
+        key=lambda pair: (
+            _CATEGORY_ORDER.get(pair.category, 99),
+            pair.label.lower(),
+            pair.target,
+        ),
+    )
 
 
 def get_pair(source: str, target: str) -> ConversionPair:
@@ -301,7 +437,9 @@ def get_engine(source: str, target: str) -> ConversionEngine:
         ) from exc
 
 
-def convert_file(source_path: Path, source: str, target: str, destination_path: Path) -> Path:
+def convert_file(
+    source_path: Path, source: str, target: str, destination_path: Path
+) -> Path:
     """Run the registered engine for the given pair."""
     engine = get_engine(source, target)
     destination_path.parent.mkdir(parents=True, exist_ok=True)
@@ -325,7 +463,7 @@ def normalize_format(value: str) -> str:
 
 def detect_format_from_filename(filename: str) -> str | None:
     name = Path(filename).name.lower()
-    if name.endswith(".tar.gz") or name.endswith(".tgz"):
+    if name.endswith((".tar.gz", ".tgz")):
         return "tgz"
 
     suffix = Path(filename).suffix.lower().lstrip(".")

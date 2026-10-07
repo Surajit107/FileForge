@@ -319,30 +319,40 @@
     }
   }
 
-  const refreshTargets = async (filename) => {
-    if (!targetSelect || !filename) return;
+  const applyTargetOptions = (targets) => {
+    if (!targetSelect || !Array.isArray(targets)) return;
+    const previous = targetSelect.value;
+    targetSelect.innerHTML = "";
+    for (const target of targets) {
+      const option = document.createElement("option");
+      option.value = target.format;
+      option.textContent = target.best_effort
+        ? `${target.label} (best effort)`
+        : target.label;
+      targetSelect.appendChild(option);
+    }
+    if (
+      previous &&
+      [...targetSelect.options].some((opt) => opt.value === previous)
+    ) {
+      targetSelect.value = previous;
+    }
+    formatPicker?.rebuildOptions();
+  };
+
+  const refreshTargets = async (files) => {
+    if (!targetSelect) return;
+    const list = (Array.isArray(files) ? files : []).filter((file) => file?.name);
+    const params = new URLSearchParams();
+    list.forEach((file) => params.append("filename", file.name));
+    const url = params.toString() ? `/api/formats/?${params}` : "/api/formats/";
+
     try {
-      const response = await fetch(
-        `/api/formats/?filename=${encodeURIComponent(filename)}`
-      );
+      const response = await fetch(url);
       if (!response.ok) return;
       const data = await response.json();
-      if (!Array.isArray(data.targets) || data.targets.length === 0) return;
-
-      const previous = targetSelect.value;
-      targetSelect.innerHTML = "";
-      for (const target of data.targets) {
-        const option = document.createElement("option");
-        option.value = target.format;
-        option.textContent = target.best_effort
-          ? `${target.label} (best effort)`
-          : target.label;
-        targetSelect.appendChild(option);
-      }
-      if ([...targetSelect.options].some((opt) => opt.value === previous)) {
-        targetSelect.value = previous;
-      }
-      formatPicker?.rebuildOptions();
+      // Always apply — including empty — so stale options never linger.
+      applyTargetOptions(Array.isArray(data.targets) ? data.targets : []);
     } catch (_) {
       // Keep server-rendered choices if the API is unavailable.
     }
@@ -362,7 +372,7 @@
   fileInput.addEventListener("change", () => {
     const files = selectedFiles();
     showName(files);
-    if (files[0]) refreshTargets(files[0].name);
+    refreshTargets(files);
   });
 
   dropzone.addEventListener("dragenter", (event) => {
@@ -392,7 +402,7 @@
     dropped.forEach((file) => transfer.items.add(file));
     fileInput.files = transfer.files;
     showName(dropped);
-    refreshTargets(dropped[0].name);
+    refreshTargets(dropped);
 
     if (canAnimate) {
       motion.animate(dropzone, {

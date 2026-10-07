@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import tempfile
 import zipfile
 from pathlib import Path
 
@@ -15,8 +16,19 @@ from django.utils import timezone
 from apps.converter.exceptions import InvalidUploadError, JobNotReadyError
 from apps.converter.models import ConversionBatch, ConversionJob
 from apps.converter.services.conversion import create_job, enqueue_job, run_job
+from apps.converter.services.filenames import sanitize_display_name
+from engines.archive import pack_archive
+from engines.exceptions import ConversionFailedError
+from engines.registry import PACKABLE_TARGETS, normalize_format
 
 logger = logging.getLogger(__name__)
+
+_ARCHIVE_EXTENSIONS: dict[str, str] = {
+    "zip": "zip",
+    "tar": "tar",
+    "tgz": "tar.gz",
+    "7z": "7z",
+}
 
 
 def create_batch(
@@ -103,6 +115,123 @@ def create_and_run_batch(
     return batch
 
 
+def _unique_member_path(directory: Path, display_name: str) -> Path:
+    """Avoid collisions when two uploads share the same basename."""
+    safe = sanitize_display_name(display_name)
+    candidate = directory / safe
+    if not candidate.exists():
+        return candidate
+
+    lower = safe.lower()
+    if lower.endswith(".tar.gz"):
+        stem, suffix = safe[: -len(".tar.gz")], ".tar.gz"
+    else:
+        path = Path(safe)
+        stem, suffix = path.stem, path.suffix
+
+    index = 2
+    while True:
+        candidate = directory / f"{stem}-{index}{suffix}"
+        if not candidate.exists():
+            return candidate
+        index += 1
+
+
+@transaction.atomic
+def create_and_run_pack(
+    uploads: list[UploadedFile],
+    target_format: str,
+    *,
+    owner_session_key: str,
+) -> ConversionBatch:
+    """Pack multiple uploads into one archive (ZIP/TAR/TGZ/7Z) without converting."""
+    if len(uploads) < 2:
+        raise InvalidUploadError("Select at least two files to pack into an archive.")
+
+    target = normalize_format(target_format)
+    if target not in PACKABLE_TARGETS:
+        raise InvalidUploadError(f"Unsupported pack format: {target_format}.")
+
+    if not owner_session_key:
+        raise InvalidUploadError("Missing session ownership for conversion batch.")
+
+    if len(uploads) > settings.CONVERSION_MAX_BATCH_FILES:
+        raise InvalidUploadError(
+            f"Too many files. Maximum batch size is {settings.CONVERSION_MAX_BATCH_FILES}."
+        )
+
+    total = sum(upload.size for upload in uploads)
+    if total > settings.CONVERSION_MAX_BATCH_BYTES:
+        max_mb = settings.CONVERSION_MAX_BATCH_BYTES // (1024 * 1024)
+        raise InvalidUploadError(f"Batch exceeds the {max_mb} MB total upload limit.")
+
+    expires_at = timezone.now() + settings.CONVERSION_JOB_TTL
+    batch = ConversionBatch.objects.create(
+        owner_session_key=owner_session_key,
+        target_format=target,
+        status=ConversionBatch.Status.PROCESSING,
+        file_count=len(uploads),
+        expires_at=expires_at,
+    )
+
+    extension = _ARCHIVE_EXTENSIONS[target]
+    try:
+        with tempfile.TemporaryDirectory(prefix="fileforge-pack-") as tmp:
+            root = Path(tmp)
+            staging = root / "files"
+            staging.mkdir()
+            for upload in uploads:
+                destination = _unique_member_path(staging, upload.name or "upload.bin")
+                with destination.open("wb") as handle:
+                    for chunk in upload.chunks():
+                        handle.write(chunk)
+
+            archive_path = root / f"fileforge-pack.{extension}"
+            pack_archive(staging, archive_path, target)
+            with archive_path.open("rb") as handle:
+                batch.zip_file.save(
+                    f"fileforge-batch-{batch.id}.{extension}",
+                    File(handle),
+                    save=False,
+                )
+    except ConversionFailedError as exc:
+        batch.status = ConversionBatch.Status.FAILED
+        batch.error_message = str(exc)
+        batch.completed_at = timezone.now()
+        batch.save(
+            update_fields=["status", "error_message", "completed_at", "updated_at"]
+        )
+        raise InvalidUploadError(str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        batch.status = ConversionBatch.Status.FAILED
+        batch.error_message = f"Packing failed: {exc}"
+        batch.completed_at = timezone.now()
+        batch.save(
+            update_fields=["status", "error_message", "completed_at", "updated_at"]
+        )
+        raise InvalidUploadError(f"Packing failed: {exc}") from exc
+
+    batch.status = ConversionBatch.Status.DONE
+    batch.error_message = ""
+    batch.completed_at = timezone.now()
+    batch.save(
+        update_fields=[
+            "zip_file",
+            "status",
+            "error_message",
+            "completed_at",
+            "updated_at",
+        ]
+    )
+    logger.info(
+        "conversion_pack_done batch_id=%s files=%s target=%s",
+        batch.id,
+        batch.file_count,
+        batch.target_format,
+    )
+    return batch
+
+
 def finalize_batch(batch: ConversionBatch) -> ConversionBatch:
     """Build ZIP when all child jobs are terminal. Safe to call repeatedly."""
     jobs = list(batch.jobs.all())
@@ -122,7 +251,11 @@ def finalize_batch(batch: ConversionBatch) -> ConversionBatch:
     if any(job.status in pending for job in jobs):
         return batch
 
-    done = [job for job in jobs if job.status == ConversionJob.Status.DONE and job.output_file]
+    done = [
+        job
+        for job in jobs
+        if job.status == ConversionJob.Status.DONE and job.output_file
+    ]
     failed = [job for job in jobs if job.status == ConversionJob.Status.FAILED]
 
     if done:

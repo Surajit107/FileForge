@@ -11,9 +11,9 @@ from engines.registry import (
     ALLOWED_SOURCE_EXTENSIONS,
     accept_attribute,
     detect_format_from_filename,
-    list_sources,
+    list_unique_targets,
     supported_upload_message,
-    targets_for,
+    targets_for_selection,
 )
 
 
@@ -66,15 +66,14 @@ class ConversionForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Default choices for empty GET: Markdown targets (most common entry).
-        default_source = (
-            "md" if "md" in list_sources() else (list_sources()[0] if list_sources() else "md")
-        )
-        source_hint = None
+        # Empty state: full catalog. With uploads: intersection (+ pack for 2+).
+        sources: list[str] = []
         files = self.files.getlist("source_file") if self.is_bound else []
-        if files:
-            source_hint = detect_format_from_filename(files[0].name)
-        pairs = targets_for(source_hint or default_source)
+        for item in files:
+            detected = detect_format_from_filename(item.name)
+            if detected:
+                sources.append(detected)
+        pairs = targets_for_selection(sources) if sources else list_unique_targets()
         self.fields["target_format"].choices = [
             (pair.target, f"{pair.label}{' (best effort)' if pair.best_effort else ''}")
             for pair in pairs
@@ -132,14 +131,16 @@ class ConversionForm(forms.Form):
         detected_sources = cleaned.get("detected_sources") or []
         target = cleaned.get("target_format")
         if target and detected_sources:
-            for source in detected_sources:
-                allowed = {pair.target for pair in targets_for(source)}
-                if target not in allowed:
-                    self.add_error(
-                        "target_format",
-                        f"Cannot convert {source} to {target}.",
+            allowed = {pair.target for pair in targets_for_selection(detected_sources)}
+            if target not in allowed:
+                if len(detected_sources) == 1:
+                    message = f"Cannot convert {detected_sources[0]} to {target}."
+                else:
+                    message = (
+                        f"Cannot convert this file set to {target}. "
+                        "Choose a format shared by every file, or ZIP/TAR to pack them."
                     )
-                    break
+                self.add_error("target_format", message)
 
         cleaned["source_files"] = files
         cleaned["detected_source_format"] = detected_sources[0] if detected_sources else None
