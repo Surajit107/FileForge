@@ -57,6 +57,7 @@
   const pairRibbon = document.querySelector(".pair-ribbon__stack");
   const supportedHeading = document.querySelector("#supported-heading");
   const supportedLead = document.querySelector("#supported-heading + p");
+  const homeSections = document.querySelectorAll("[data-home-section]");
   const convertStages = document.querySelectorAll(
     "#view-form .job-pair, .job-panel .job-pair"
   );
@@ -85,6 +86,7 @@
     messages,
     convertFields,
     pairRibbon,
+    homeSections,
     convertStages,
     metaBlocks,
     jobExtras,
@@ -108,6 +110,147 @@
     };
     return;
   }
+
+  const runStageAmbient = () => {
+    const root = document.querySelector("[data-stage-ambient]");
+    if (!root || !window.matchMedia("(min-width: 768px)").matches) return;
+
+    const sheet = root.querySelector("[data-ambient-sheet]");
+    const scan = root.querySelector("[data-ambient-scan]");
+    const glow = root.querySelector("[data-ambient-glow]");
+    const chips = root.querySelectorAll("[data-ambient-chip]");
+    const sparks = root.querySelectorAll("[data-ambient-sparks] span");
+
+    if (sheet) {
+      utils.set(sheet, { opacity: 0.92, translateY: 0, rotate: -2, scale: 1 });
+      animate(sheet, {
+        translateY: [
+          { to: -10, duration: 3200 },
+          { to: 6, duration: 3600 },
+          { to: 0, duration: 3000 },
+        ],
+        rotate: [
+          { to: 2.5, duration: 3400 },
+          { to: -1.5, duration: 3800 },
+          { to: -2, duration: 3000 },
+        ],
+        scale: [
+          { to: 1.04, duration: 3400 },
+          { to: 0.98, duration: 3600 },
+          { to: 1, duration: 3000 },
+        ],
+        ease: "inOutSine",
+        loop: true,
+      });
+    }
+
+    if (scan && sheet) {
+      const travel = Math.max(72, (sheet.getBoundingClientRect().height || 120) * 0.62);
+      utils.set(scan, { opacity: 0, translateY: 0 });
+      animate(scan, {
+        translateY: [
+          { to: 0, duration: 400 },
+          { to: travel * 0.35, duration: 700 },
+          { to: travel, duration: 1100 },
+          { to: travel + 4, duration: 280 },
+          { to: 0, duration: 40 },
+        ],
+        opacity: [
+          { to: 0, duration: 400 },
+          { to: 0.95, duration: 280 },
+          { to: 0.8, duration: 1400 },
+          { to: 0, duration: 360 },
+          { to: 0, duration: 2000 },
+        ],
+        ease: "inOutSine",
+        loop: true,
+      });
+    }
+
+    if (glow) {
+      utils.set(glow, { opacity: 0.28, scale: 1 });
+      animate(glow, {
+        opacity: [
+          { to: 0.48, duration: 2800 },
+          { to: 0.22, duration: 3200 },
+          { to: 0.28, duration: 2600 },
+        ],
+        scale: [
+          { to: 1.18, duration: 3000 },
+          { to: 0.9, duration: 3400 },
+          { to: 1, duration: 2800 },
+        ],
+        ease: "inOutSine",
+        loop: true,
+      });
+    }
+
+    if (chips.length) {
+      chips.forEach((chip, index) => {
+        const driftX = index % 2 === 0 ? 8 : -10;
+        const driftY = index % 2 === 0 ? -12 : 10;
+        utils.set(chip, { opacity: 0.55, translateX: 0, translateY: 0 });
+        animate(chip, {
+          opacity: [
+            { to: 0.95, duration: 1800 },
+            { to: 0.4, duration: 2200 },
+            { to: 0.55, duration: 1800 },
+          ],
+          translateX: [
+            { to: driftX, duration: 2600 },
+            { to: driftX * -0.6, duration: 3000 },
+            { to: 0, duration: 2400 },
+          ],
+          translateY: [
+            { to: driftY, duration: 2800 },
+            { to: driftY * -0.5, duration: 3200 },
+            { to: 0, duration: 2400 },
+          ],
+          delay: index * 220,
+          ease: "inOutSine",
+          loop: true,
+        });
+      });
+    }
+
+    if (sparks.length) {
+      sparks.forEach((spark, index) => {
+        const rise = -(48 + (index % 4) * 18);
+        const sway = index % 2 === 0 ? 10 : -12;
+        utils.set(spark, { opacity: 0, translateX: 0, translateY: 0, scale: 0.6 });
+        animate(spark, {
+          translateY: [
+            { to: 0, duration: 1 },
+            { to: rise * 0.4, duration: 500 },
+            { to: rise, duration: 1200 + (index % 3) * 180 },
+            { to: 0, duration: 40 },
+          ],
+          translateX: [
+            { to: 0, duration: 1 },
+            { to: sway * 0.4, duration: 700 },
+            { to: sway, duration: 1100 },
+            { to: 0, duration: 40 },
+          ],
+          opacity: [
+            { to: 0, duration: 1 },
+            { to: 0.9, duration: 280 },
+            { to: 0.55, duration: 900 },
+            { to: 0, duration: 700 },
+            { to: 0, duration: 600 + index * 80 },
+          ],
+          scale: [
+            { to: 0.6, duration: 1 },
+            { to: 1, duration: 280 },
+            { to: 0.35, duration: 1400 },
+            { to: 0.6, duration: 40 },
+          ],
+          delay: index * 180,
+          ease: "inOutSine",
+          loop: true,
+        });
+      });
+    }
+  };
 
   const runPageEntrance = () => {
   if (allMotionTargets.length) {
@@ -415,6 +558,21 @@
     );
   }
 
+  if (homeSections.length) {
+    utils.set(homeSections, { opacity: 0, translateY: 18 });
+    tl.add(
+      homeSections,
+      {
+        opacity: [0, 1],
+        translateY: [18, 0],
+        duration: 620,
+        ease: "outCubic",
+        delay: stagger(90),
+      },
+      "-=240"
+    );
+  }
+
   if (footer) {
     utils.set(footer, { opacity: 0, translateY: 12, filter: "blur(4px)" });
     tl.add(
@@ -466,6 +624,8 @@
       loop: true,
     });
   }
+
+  runStageAmbient();
   };
 
   window.FileForgeMotion = {
