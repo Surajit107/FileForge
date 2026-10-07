@@ -1,10 +1,53 @@
-# FileForge
+<p align="center">
+  <a href="https://www.python.org/" target="_blank" rel="noopener noreferrer">
+    <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/python/python-original.svg" alt="Python" height="72" />
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.djangoproject.com/" target="_blank" rel="noopener noreferrer">
+    <img src="https://raw.githubusercontent.com/devicons/devicon/master/icons/django/django-plain-wordmark.svg" alt="Django" height="72" />
+  </a>
+</p>
 
-Personal online file converter built with **Django** and a framework-agnostic **engines** layer.
+<h1 align="center">FileForge</h1>
 
-Upload a file → choose an output format → download the result.
+<p align="center">
+  Personal online file converter built with <b>Python</b> &amp; <b>Django</b>
+  and a framework-agnostic <b>engines</b> layer.<br />
+  Upload a file → choose an output format → download the result.
+</p>
+
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat&logo=python&logoColor=white" />
+  <img alt="Django" src="https://img.shields.io/badge/Django-5.2-092E20?style=flat&logo=django&logoColor=white" />
+  <img alt="uv" src="https://img.shields.io/badge/uv-Astral-111111?style=flat&logo=astral&logoColor=DE5FE9" />
+  <img alt="PyPI" src="https://img.shields.io/badge/PyPI-locked-3775A9?style=flat&logo=pypi&logoColor=white" />
+  <img alt="Celery" src="https://img.shields.io/badge/Celery-5.6-37814A?style=flat&logo=celery&logoColor=white" />
+  <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?style=flat&logo=redis&logoColor=white" />
+  <img alt="Node.js" src="https://img.shields.io/badge/Node.js-20%2B-339933?style=flat&logo=nodedotjs&logoColor=white" />
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind_CSS-4.3-06B6D4?style=flat&logo=tailwindcss&logoColor=white" />
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-ready-2496ED?style=flat&logo=docker&logoColor=white" />
+</p>
+
+<details>
+<summary><strong>Stack versions</strong></summary>
+
+| Stack | Version / notes |
+|-------|-----------------|
+| **Python** | `>=3.11` (tested on 3.12 / 3.14) |
+| **Django** | `>=5.1,<6` (lockfile: 5.2.x) |
+| **uv** | [Astral uv](https://docs.astral.sh/uv/) — project `.venv` + `uv.lock` |
+| **PyPI** | Dependencies resolved from PyPI via `uv.lock` |
+| **Celery** | `>=5.4` (lockfile: 5.6.x) — async conversion workers |
+| **Redis** | Server 7.x recommended; Python client `>=5.0` |
+| **Node.js** | 20+ for Tailwind CSS builds / `npm run quickstart` |
+| **Tailwind CSS** | `^4.3` |
+| **Gunicorn** | Prod group (`>=22`) |
+| **Pillow** | `>=10` (image conversions) |
+
+</details>
 
 **Currently supported (F5/F6 conversions)**
+
 
 | Source | Targets |
 |--------|---------|
@@ -28,9 +71,9 @@ Roadmap: [docs/PLAN.md](docs/PLAN.md)
 
 ## Requirements
 
-- **Python** 3.11+ (3.12 / 3.14 also fine) — prefer an install on your programming drive
-- **[uv](https://docs.astral.sh/uv/)** (creates/manages project `.venv` and lockfile)
-- **Node.js** (for `npm run quickstart` and Tailwind CSS builds)
+- **Python** 3.11+ — install however you prefer (system, pyenv, or let `uv` manage it)
+- **[uv](https://docs.astral.sh/uv/)** — creates/manages project `.venv` and lockfile ([install guide](https://docs.astral.sh/uv/getting-started/installation/))
+- **Node.js** 20+ (for `npm run quickstart` and Tailwind CSS builds)
 - **Git** (optional)
 - **Docker** + Docker Compose (optional)
 
@@ -49,7 +92,7 @@ uv export --no-hashes --no-emit-project --group prod -o requirements.txt
 
 ## Quick start (first time)
 
-From the repository root (`FileForge/`), with **uv** and **Node.js** on PATH:
+From the repository root, with **uv** and **Node.js** on your `PATH`:
 
 ```bash
 npm run quickstart
@@ -62,9 +105,6 @@ That runs `uv sync`, creates `.env` from `.env.example` if missing, migrates, th
 **Windows (Git Bash):**
 
 ```bash
-# uv on PATH (this machine: P:\Tools\uv)
-export PATH="/p/Tools/uv:$PATH"
-
 uv sync
 cp .env.example .env
 source .venv/Scripts/activate
@@ -75,9 +115,6 @@ python main.py runserver
 **Windows (PowerShell):**
 
 ```powershell
-# uv on PATH (this machine: P:\Tools\uv)
-$env:Path = "P:\Tools\uv;$env:Path"
-
 uv sync
 Copy-Item .env.example .env
 .\.venv\Scripts\Activate.ps1
@@ -102,19 +139,6 @@ uv run python main.py migrate
 uv run python main.py runserver
 ```
 
-### uv locations on this machine (P: programming drive)
-
-| What | Path |
-|------|------|
-| `uv` binary | `P:\Tools\uv` |
-| Package cache | `P:\DevData\uv\cache` |
-| Managed Python (if uv downloads one) | `P:\DevData\uv\python` |
-| uv tools | `P:\DevData\uv\tools` |
-| Global uv config | `P:\DevData\uv\uv.toml` (`UV_CONFIG_FILE`) |
-| Project venv | `P:\Projects\PROTOTYPES\FILE_CONVERTER\.venv` |
-
-User env vars already point cache/python/tool dirs at `P:\DevData\uv\...`. Open a **new** terminal after install so PATH picks up `P:\Tools\uv`.
-
 ---
 
 ## Daily run (already set up)
@@ -123,7 +147,7 @@ If the project is already initialized:
 
 ```bash
 # 1) Go to project root
-cd /path/to/FILE_CONVERTER
+cd /path/to/FileForge
 
 # 2) Ensure deps match lockfile (cheap if unchanged)
 uv sync
@@ -174,14 +198,14 @@ Run all commands from the repository root.
 
 ### 1.1 Install uv (once per machine)
 
-**Windows (PowerShell):**
+Follow the official installer for your OS:  
+https://docs.astral.sh/uv/getting-started/installation/
 
-```powershell
-$env:UV_INSTALL_DIR = "P:\Tools\uv"
-irm https://astral.sh/uv/install.ps1 | iex
+After install, confirm `uv` is on your `PATH`:
+
+```bash
+uv --version
 ```
-
-Add `P:\Tools\uv` to your user PATH if the installer did not.
 
 ### 1.2 Create `.venv` and install dependencies
 
@@ -189,7 +213,7 @@ Add `P:\Tools\uv` to your user PATH if the installer did not.
 uv sync
 ```
 
-This creates project-local `.venv` and installs from `uv.lock`.
+This creates a project-local `.venv` and installs from `uv.lock`.
 
 Activate (optional if you use `uv run`):
 
@@ -332,7 +356,7 @@ Then open `http://127.0.0.1:8001/` (or your machine IP if using `0.0.0.0`).
 | Symptom | What to do |
 |---------|------------|
 | `ModuleNotFoundError: No module named 'django'` | `uv sync`, then activate `.venv` or use `uv run` |
-| `uv: command not found` | Add `P:\Tools\uv` to PATH; open a new terminal |
+| `uv: command not found` | Install uv and ensure it is on your `PATH`; open a new terminal |
 | `No such file or directory: main.py` | `cd` into the repo root first |
 | Port already in use | `python main.py runserver 8001` |
 | Config errors | Ensure `.env` exists (`cp .env.example .env`) |
@@ -450,12 +474,12 @@ The image also installs **LibreOffice** (Writer/Calc/Impress) for office → PDF
 | Problem | Fix |
 |---------|-----|
 | Django not found | `uv sync` (recreates/repairs `.venv`) |
-| `uv` not found | Ensure `P:\Tools\uv` is on PATH; new terminal |
+| `uv` not found | Install uv and ensure it is on your `PATH`; open a new terminal |
 | Config / secret errors | Compare your `.env` with `.env.example` |
 | Port 8000 busy | `python main.py runserver 8001` |
 | Upload rejected | Use a supported type (docs/images/office/archives/audio/video); extension must match content; check upload/batch limits in `.env` |
 | Stale files | `python main.py purge_expired_jobs` |
-| CSRF 403 / “Origin checking failed” | On the host, set `DJANGO_SETTINGS_MODULE=config.settings.production`, `DEBUG=False`, `ALLOWED_HOSTS=fileforge.asteriq.in`, and **`CSRF_TRUSTED_ORIGINS=https://fileforge.asteriq.in`**, then redeploy. Origin must be a full `https://…` URL, not a bare hostname. |
+| CSRF 403 / “Origin checking failed” | On the host, set `DJANGO_SETTINGS_MODULE=config.settings.production`, `DEBUG=False`, `ALLOWED_HOSTS=<your-domain>`, and **`CSRF_TRUSTED_ORIGINS=https://<your-domain>`**, then redeploy. Origin must be a full `https://…` URL, not a bare hostname. |
 | `docx / xlsx / csv / pptx → pdf` fails locally | Expected — LibreOffice is not part of local setup. Use Docker/server for these pairs |
 | `office → pdf` fails on server | Rebuild/redeploy the Docker image so Writer/Calc/Impress are installed |
 | Audio/video fails locally | Expected without ffmpeg — install ffmpeg or use Docker |
