@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import redirect, render
@@ -192,6 +193,11 @@ def convert_home(request):
         {
             "form": form,
             "pairs": list_pairs(),
+            "upload_max_mb": settings.CONVERSION_MAX_UPLOAD_BYTES // (1024 * 1024),
+            "batch_max_files": settings.CONVERSION_MAX_BATCH_FILES,
+            "job_ttl_hours": max(
+                1, int(settings.CONVERSION_JOB_TTL.total_seconds() // 3600)
+            ),
         },
     )
 

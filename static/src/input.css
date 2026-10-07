@@ -30,11 +30,42 @@
   html {
     scroll-behavior: smooth;
     color-scheme: dark;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.2) transparent;
   }
 
   body {
     @apply font-sans text-ink antialiased;
     background-color: var(--color-paper);
+  }
+
+  /* Custom scrollbar — thin dark rail, ember thumb on interaction */
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: rgb(255 255 255 / 0.14);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgb(251 191 36 / 0.55);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background-color: var(--color-ember);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }
 
@@ -180,6 +211,109 @@
     @apply relative z-0 border-t border-line pt-5 sm:pt-6;
   }
 
+  .home-content {
+    @apply mt-8 grid gap-8 border-t border-line pt-7 sm:mt-10 sm:gap-10 sm:pt-9;
+  }
+
+  .home-section {
+    @apply grid gap-4 sm:gap-5;
+  }
+
+  .home-section__head {
+    @apply flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4;
+  }
+
+  .home-section__title {
+    @apply m-0 font-display text-base font-bold tracking-tight text-ink sm:text-lg;
+  }
+
+  .home-section__lead {
+    @apply m-0 text-sm text-mist;
+  }
+
+  .home-steps {
+    @apply m-0 grid list-none gap-4 p-0 sm:grid-cols-3 sm:gap-5;
+  }
+
+  .home-steps__item {
+    @apply grid grid-cols-[auto_minmax(0,1fr)] gap-3;
+  }
+
+  .home-steps__index {
+    @apply mt-0.5 font-display text-sm font-bold tabular-nums text-ember;
+  }
+
+  .home-steps__title {
+    @apply m-0 text-sm font-semibold text-ink;
+  }
+
+  .home-steps__text {
+    @apply mt-1 mb-0 text-sm leading-relaxed text-mist;
+  }
+
+  .home-points {
+    @apply m-0 grid list-none gap-3 p-0;
+  }
+
+  .home-points li {
+    @apply text-sm leading-relaxed text-mist;
+  }
+
+  .home-points strong {
+    @apply font-semibold text-ink;
+  }
+
+  .home-limits {
+    @apply m-0 grid gap-0 border-y border-line;
+  }
+
+  .home-limits__row {
+    @apply grid grid-cols-1 gap-0.5 border-t border-line py-3 first:border-t-0 sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)] sm:items-baseline sm:gap-4;
+  }
+
+  .home-limits dt {
+    @apply text-sm font-semibold text-ink;
+  }
+
+  .home-limits dd {
+    @apply m-0 text-sm text-mist;
+  }
+
+  .home-faq {
+    @apply grid gap-0 border-y border-line;
+  }
+
+  .home-faq__item {
+    @apply border-t border-line first:border-t-0;
+  }
+
+  .home-faq__item summary {
+    @apply cursor-pointer list-none py-3 text-sm font-semibold text-ink outline-none;
+  }
+
+  .home-faq__item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .home-faq__item summary::after {
+    content: "+";
+    float: right;
+    color: var(--color-mist, #9ca3af);
+    font-weight: 600;
+  }
+
+  .home-faq__item[open] summary::after {
+    content: "–";
+  }
+
+  .home-faq__item summary:focus-visible {
+    @apply text-ember;
+  }
+
+  .home-faq__item p {
+    @apply mt-0 mb-3 text-sm leading-relaxed text-mist;
+  }
+
   .pair-catalog__head {
     @apply mb-4 flex flex-col gap-1 sm:mb-5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4;
   }
@@ -193,8 +327,27 @@
   }
 
   .pair-ribbon__stack {
-    @apply grid gap-1 overflow-hidden rounded-xl border border-line py-1;
+    @apply relative grid gap-1 overflow-hidden rounded-xl border border-line py-1;
     background: linear-gradient(180deg, rgb(26 26 26 / 0.45) 0%, rgb(10 10 10 / 0.75) 100%);
+  }
+
+  .pair-ribbon__stack::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      transparent 42%,
+      rgb(255 255 255 / 0.045) 50%,
+      transparent 58%,
+      transparent 100%
+    );
+    background-size: 220% 100%;
+    background-position: 120% 0;
+    opacity: 0;
   }
 
   .pair-ribbon__viewport {
@@ -229,6 +382,7 @@
 
   .pair-ribbon__arrow {
     @apply text-mist;
+    display: inline-block;
   }
 
   .pair-ribbon__hint {
@@ -237,11 +391,19 @@
   }
 
   html.js-motion:not(.reduce-motion) .pair-ribbon__track--left {
-    animation: pair-ribbon-left 55s linear infinite;
+    animation: pair-ribbon-left 120s linear infinite;
   }
 
   html.js-motion:not(.reduce-motion) .pair-ribbon__track--right {
-    animation: pair-ribbon-right 65s linear infinite;
+    animation: pair-ribbon-right 145s linear infinite;
+  }
+
+  html.js-motion:not(.reduce-motion) .pair-ribbon__stack::after {
+    animation: pair-ribbon-sheen 9s ease-in-out infinite;
+  }
+
+  html.js-motion:not(.reduce-motion) .pair-ribbon__arrow {
+    animation: pair-ribbon-arrow 2.8s ease-in-out infinite;
   }
 
   html.js-motion:not(.reduce-motion) .pair-ribbon__viewport:hover .pair-ribbon__track {
@@ -263,6 +425,35 @@
     }
     to {
       transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes pair-ribbon-sheen {
+    0%,
+    18% {
+      opacity: 0;
+      background-position: 120% 0;
+    }
+    35%,
+    55% {
+      opacity: 1;
+    }
+    72%,
+    100% {
+      opacity: 0;
+      background-position: -20% 0;
+    }
+  }
+
+  @keyframes pair-ribbon-arrow {
+    0%,
+    100% {
+      transform: translateX(0);
+      opacity: 0.55;
+    }
+    50% {
+      transform: translateX(3px);
+      opacity: 1;
     }
   }
 
@@ -1520,6 +1711,7 @@ html.js-motion:not(.reduce-motion) .history-panel > h1,
 html.js-motion:not(.reduce-motion) .history-panel > .page-lead,
 html.js-motion:not(.reduce-motion) .message,
 html.js-motion:not(.reduce-motion) .pair-ribbon__stack,
+html.js-motion:not(.reduce-motion) [data-home-section],
 html.js-motion:not(.reduce-motion) .history-row,
 html.js-motion:not(.reduce-motion) .job-panel .job-meta,
 html.js-motion:not(.reduce-motion) #convert-form > *,
@@ -1558,8 +1750,14 @@ html.js-motion:not(.reduce-motion) .ambient-orb {
   .job-pair.is-converting .job-pair__progress-fill,
   .job-pair.is-converting .job-pair__progress-sheen,
   .pair-ribbon__track--left,
-  .pair-ribbon__track--right {
+  .pair-ribbon__track--right,
+  .pair-ribbon__stack::after,
+  .pair-ribbon__arrow {
     animation: none !important;
+  }
+
+  .pair-ribbon__stack::after {
+    content: none;
   }
 
   .pair-ribbon__viewport {

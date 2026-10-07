@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Convert — {{ SITE_NAME }}{% endblock %}
+{% block title %}Convert files — {{ SITE_NAME }}{% endblock %}
 
 {% block body_attrs %}data-intro-splash="1"{% endblock %}
 
 {% block content %}
 <div id="convert-app" data-view="form">
-  <div id="view-form" class="convert-layout" data-convert-view="form">
+  <div id="view-form" data-convert-view="form">
+    <div class="convert-layout">
     <section class="convert-layout__form" aria-labelledby="convert-heading">
       <p class="page-kicker">Convert</p>
       <h1 id="convert-heading" class="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl">
@@ -242,6 +243,132 @@
         <p class="text-sm text-mist">No conversion pairs registered.</p>
       {% endif %}
     </section>
+  </div>
+
+  <div class="home-content">
+    <section class="home-section" aria-labelledby="how-heading" data-home-section>
+      <header class="home-section__head">
+        <h2 id="how-heading" class="home-section__title">How it works</h2>
+        <p class="home-section__lead">
+          Three steps. No account. Output ready when the job finishes.
+        </p>
+      </header>
+      <ol class="home-steps">
+        <li class="home-steps__item">
+          <span class="home-steps__index" aria-hidden="true">1</span>
+          <div>
+            <h3 class="home-steps__title">Upload</h3>
+            <p class="home-steps__text">
+              Drop one file or a batch (up to {{ batch_max_files }}). Docs and images in this build.
+            </p>
+          </div>
+        </li>
+        <li class="home-steps__item">
+          <span class="home-steps__index" aria-hidden="true">2</span>
+          <div>
+            <h3 class="home-steps__title">Choose a target</h3>
+            <p class="home-steps__text">
+              Pick an output format from the registry — only pairs this build actually supports.
+            </p>
+          </div>
+        </li>
+        <li class="home-steps__item">
+          <span class="home-steps__index" aria-hidden="true">3</span>
+          <div>
+            <h3 class="home-steps__title">Download</h3>
+            <p class="home-steps__text">
+              Get the converted file, or a ZIP when you convert multiple files at once.
+            </p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section class="home-section" aria-labelledby="privacy-heading" data-home-section>
+      <header class="home-section__head">
+        <h2 id="privacy-heading" class="home-section__title">Built for privacy</h2>
+        <p class="home-section__lead">
+          Personal converter defaults — not a public file dump.
+        </p>
+      </header>
+      <ul class="home-points">
+        <li>
+          <strong>Session-owned jobs.</strong>
+          History and downloads stay tied to your browser session, not a shared feed.
+        </li>
+        <li>
+          <strong>Ephemeral files.</strong>
+          Uploads and outputs expire after {{ job_ttl_hours }} hour{{ job_ttl_hours|pluralize }} and are purged.
+        </li>
+        <li>
+          <strong>No account required.</strong>
+          Convert without signing up; nothing here pretends to keep your files forever.
+        </li>
+      </ul>
+    </section>
+
+    <section class="home-section" aria-labelledby="limits-heading" data-home-section>
+      <header class="home-section__head">
+        <h2 id="limits-heading" class="home-section__title">Limits</h2>
+        <p class="home-section__lead">
+          Hard caps for this deployment — not marketing fluff.
+        </p>
+      </header>
+      <dl class="home-limits">
+        <div class="home-limits__row">
+          <dt>Max upload size</dt>
+          <dd>{{ upload_max_mb }}&nbsp;MB per file</dd>
+        </div>
+        <div class="home-limits__row">
+          <dt>Batch size</dt>
+          <dd>Up to {{ batch_max_files }} files</dd>
+        </div>
+        <div class="home-limits__row">
+          <dt>File retention</dt>
+          <dd>{{ job_ttl_hours }} hour{{ job_ttl_hours|pluralize }} after the job starts</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="home-section" aria-labelledby="faq-heading" data-home-section>
+      <header class="home-section__head">
+        <h2 id="faq-heading" class="home-section__title">FAQ</h2>
+        <p class="home-section__lead">
+          Straight answers for a public converter page.
+        </p>
+      </header>
+      <div class="home-faq">
+        <details class="home-faq__item">
+          <summary>What formats can I convert?</summary>
+          <p>
+            Only pairs registered in this build — shown in Supported conversions above.
+            Some targets are marked best effort when quality or fidelity can vary.
+          </p>
+        </details>
+        <details class="home-faq__item">
+          <summary>Can I convert multiple files at once?</summary>
+          <p>
+            Yes. Upload up to {{ batch_max_files }} files to the same target format.
+            Finished batches download as a ZIP.
+          </p>
+        </details>
+        <details class="home-faq__item">
+          <summary>How long are my files kept?</summary>
+          <p>
+            Jobs expire after {{ job_ttl_hours }} hour{{ job_ttl_hours|pluralize }}.
+            After that, uploads and outputs are removed automatically.
+          </p>
+        </details>
+        <details class="home-faq__item">
+          <summary>Is there a rate limit?</summary>
+          <p>
+            Yes. Conversions are rate-limited per client so one browser cannot flood the queue.
+            If you hit the cap, wait a bit and try again.
+          </p>
+        </details>
+      </div>
+    </section>
+  </div>
   </div>
 
   <section

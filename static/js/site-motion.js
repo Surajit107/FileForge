@@ -57,6 +57,7 @@
   const pairRibbon = document.querySelector(".pair-ribbon__stack");
   const supportedHeading = document.querySelector("#supported-heading");
   const supportedLead = document.querySelector("#supported-heading + p");
+  const homeSections = document.querySelectorAll("[data-home-section]");
   const convertStages = document.querySelectorAll(
     "#view-form .job-pair, .job-panel .job-pair"
   );
@@ -85,6 +86,7 @@
     messages,
     convertFields,
     pairRibbon,
+    homeSections,
     convertStages,
     metaBlocks,
     jobExtras,
@@ -412,6 +414,21 @@
         ease: "outCubic",
       },
       "-=300"
+    );
+  }
+
+  if (homeSections.length) {
+    utils.set(homeSections, { opacity: 0, translateY: 18 });
+    tl.add(
+      homeSections,
+      {
+        opacity: [0, 1],
+        translateY: [18, 0],
+        duration: 620,
+        ease: "outCubic",
+        delay: stagger(90),
+      },
+      "-=240"
     );
   }
 
