@@ -204,11 +204,125 @@
   }
 
   .convert-layout__stage {
-    @apply relative z-10 grid content-start border-t border-line pt-5 md:border-l md:border-t-0 md:pl-6 md:pt-0 lg:pl-8;
+    @apply relative z-10 flex flex-col border-t border-line pt-5 md:border-l md:border-t-0 md:pl-6 md:pt-0 lg:pl-8;
   }
 
   .convert-layout__catalog {
     @apply relative z-0 border-t border-line pt-5 sm:pt-6;
+  }
+
+  .stage-ambient {
+    @apply relative mt-5 hidden min-h-[12rem] flex-1 overflow-hidden;
+  }
+
+  @media (min-width: 768px) {
+    .stage-ambient {
+      display: block;
+    }
+  }
+
+  .stage-ambient__glow {
+    @apply pointer-events-none absolute left-1/2 top-[42%] h-36 w-36 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30;
+    background: radial-gradient(circle, rgb(251 191 36 / 0.28), transparent 68%);
+    filter: blur(10px);
+    will-change: transform, opacity;
+  }
+
+  .stage-ambient__sheet {
+    @apply absolute left-1/2 top-[38%] w-[5.5rem] -translate-x-1/2 -translate-y-1/2 text-white/20;
+    will-change: transform, opacity;
+  }
+
+  .stage-ambient__sheet-svg {
+    @apply block h-auto w-full drop-shadow-[0_18px_28px_rgb(0_0_0_/_0.45)];
+  }
+
+  .stage-ambient__sheet-fold,
+  .stage-ambient__sheet-lines {
+    opacity: 0.55;
+  }
+
+  .stage-ambient__scan {
+    @apply pointer-events-none absolute left-[12%] right-[12%] top-[18%] h-px opacity-0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(251 191 36 / 0.95),
+      transparent
+    );
+    box-shadow: 0 0 10px rgb(251 191 36 / 0.45);
+    will-change: transform, opacity;
+  }
+
+  .stage-ambient__chips {
+    @apply pointer-events-none absolute inset-0;
+  }
+
+  .stage-ambient__chip {
+    @apply absolute rounded-md border border-line px-1.5 py-0.5 font-display text-[0.65rem] font-bold tracking-tight text-mist;
+    background: linear-gradient(180deg, #222222 0%, #171717 100%);
+    box-shadow: 0 8px 16px -12px rgb(0 0 0 / 0.85);
+    will-change: transform, opacity;
+  }
+
+  .stage-ambient__chip:nth-child(1) {
+    left: 8%;
+    top: 18%;
+  }
+
+  .stage-ambient__chip:nth-child(2) {
+    right: 6%;
+    top: 28%;
+  }
+
+  .stage-ambient__chip:nth-child(3) {
+    left: 10%;
+    bottom: 22%;
+  }
+
+  .stage-ambient__chip:nth-child(4) {
+    right: 10%;
+    bottom: 16%;
+  }
+
+  .stage-ambient__sparks {
+    @apply pointer-events-none absolute inset-x-[18%] bottom-[12%] top-[30%];
+  }
+
+  .stage-ambient__sparks span {
+    @apply absolute bottom-0 left-1/2 h-1 w-1 rounded-full opacity-0;
+    background: rgb(251 191 36 / 0.9);
+    box-shadow: 0 0 6px rgb(251 191 36 / 0.4);
+    will-change: transform, opacity;
+  }
+
+  .stage-ambient__sparks span:nth-child(1) { left: 18%; }
+  .stage-ambient__sparks span:nth-child(2) { left: 32%; }
+  .stage-ambient__sparks span:nth-child(3) { left: 46%; }
+  .stage-ambient__sparks span:nth-child(4) { left: 58%; }
+  .stage-ambient__sparks span:nth-child(5) { left: 70%; }
+  .stage-ambient__sparks span:nth-child(6) { left: 26%; }
+  .stage-ambient__sparks span:nth-child(7) { left: 52%; }
+  .stage-ambient__sparks span:nth-child(8) { left: 64%; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stage-ambient__glow,
+    .stage-ambient__sheet,
+    .stage-ambient__scan,
+    .stage-ambient__chip,
+    .stage-ambient__sparks span {
+      transform: none !important;
+      animation: none !important;
+    }
+
+    .stage-ambient__scan,
+    .stage-ambient__sparks {
+      display: none;
+    }
+
+    .stage-ambient__glow {
+      opacity: 0.2;
+    }
   }
 
   .home-content {
@@ -285,6 +399,7 @@
 
   .home-faq__item {
     @apply border-t border-line first:border-t-0;
+    interpolate-size: allow-keywords;
   }
 
   .home-faq__item summary {
@@ -300,10 +415,24 @@
     float: right;
     color: var(--color-mist, #9ca3af);
     font-weight: 600;
+    display: inline-block;
+    transition: transform 0.35s ease-in-out;
   }
 
   .home-faq__item[open] summary::after {
-    content: "–";
+    transform: rotate(45deg);
+  }
+
+  .home-faq__item::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition:
+      block-size 0.4s ease-in-out,
+      content-visibility 0.4s ease-in-out allow-discrete;
+  }
+
+  .home-faq__item[open]::details-content {
+    block-size: auto;
   }
 
   .home-faq__item summary:focus-visible {
@@ -312,6 +441,13 @@
 
   .home-faq__item p {
     @apply mt-0 mb-3 text-sm leading-relaxed text-mist;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-faq__item summary::after,
+    .home-faq__item::details-content {
+      transition: none;
+    }
   }
 
   .pair-catalog__head {

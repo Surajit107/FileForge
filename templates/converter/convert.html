@@ -179,6 +179,52 @@
         </div>
         <p class="job-pair__status" data-stage-status>Formats transform continuously</p>
       </div>
+
+      <div class="stage-ambient" data-stage-ambient aria-hidden="true">
+        <div class="stage-ambient__glow" data-ambient-glow></div>
+        <div class="stage-ambient__sheet" data-ambient-sheet>
+          <svg class="stage-ambient__sheet-svg" viewBox="0 0 120 160" fill="none">
+            <path
+              class="stage-ambient__sheet-body"
+              d="M22 10h58l28 28v102a12 12 0 0 1-12 12H22a12 12 0 0 1-12-12V22A12 12 0 0 1 22 10z"
+              fill="url(#stage-sheet-fill)"
+              stroke="currentColor"
+              stroke-width="1.5"
+            />
+            <path
+              class="stage-ambient__sheet-fold"
+              d="M80 10v28h28"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linejoin="round"
+            />
+            <path
+              class="stage-ambient__sheet-lines"
+              d="M34 78h52M34 96h40M34 114h46"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+            />
+            <defs>
+              <linearGradient id="stage-sheet-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#2c2c2c"/>
+                <stop offset="100%" stop-color="#181818"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="stage-ambient__scan" data-ambient-scan></span>
+        </div>
+        <div class="stage-ambient__chips">
+          <span class="stage-ambient__chip" data-ambient-chip>PDF</span>
+          <span class="stage-ambient__chip" data-ambient-chip>PNG</span>
+          <span class="stage-ambient__chip" data-ambient-chip>DOCX</span>
+          <span class="stage-ambient__chip" data-ambient-chip>WEBP</span>
+        </div>
+        <div class="stage-ambient__sparks" data-ambient-sparks>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </div>
     </aside>
 
     <section class="convert-layout__catalog pair-ribbon" aria-labelledby="supported-heading">
