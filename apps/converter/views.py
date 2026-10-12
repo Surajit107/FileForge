@@ -10,6 +10,7 @@ from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_GET, require_http_methods
 
 from apps.converter.exceptions import ConversionServiceError
@@ -312,8 +313,13 @@ def download_result(request, job_id):
 
 
 @require_GET
+@xframe_options_sameorigin
 def preview_result(request, job_id):
-    """Inline browser preview for readable outputs (not an attachment)."""
+    """Inline browser preview for readable outputs (not an attachment).
+
+    Same-origin framing is required so the result modal can embed PDF/HTML.
+    Production defaults to X_FRAME_OPTIONS=DENY for the rest of the site.
+    """
     job = get_owned_job_or_404(request, job_id)
     _require_download_token(
         request,
@@ -338,11 +344,14 @@ def preview_result(request, job_id):
     )
     response["X-Content-Type-Options"] = "nosniff"
     response["Content-Disposition"] = f'inline; filename="{filename}"'
+    # Allow this response to be framed by FileForge itself (preview modal).
+    response["Content-Security-Policy"] = "frame-ancestors 'self'"
     # Harden direct HTML navigation; iframe also uses sandbox in the UI.
     if job.target_format == "html":
         response["Content-Security-Policy"] = (
             "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; "
-            "script-src 'none'; base-uri 'none'; form-action 'none'"
+            "script-src 'none'; base-uri 'none'; form-action 'none'; "
+            "frame-ancestors 'self'"
         )
     return response
 
