@@ -54,6 +54,8 @@ class PreviewResultTests(TestCase):
         self.assertEqual(ok.status_code, 200)
         self.assertEqual(ok["Content-Type"], "application/pdf")
         self.assertIn("inline", ok["Content-Disposition"])
+        self.assertEqual(ok.get("X-Frame-Options"), "SAMEORIGIN")
+        self.assertIn("frame-ancestors 'self'", ok.get("Content-Security-Policy", ""))
         payload = b"".join(ok.streaming_content)
         self.assertTrue(payload.startswith(b"%PDF"))
 

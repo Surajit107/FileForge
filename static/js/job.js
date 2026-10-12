@@ -58,6 +58,7 @@
     const previewButton = panel.querySelector("#job-preview-button");
     const previewDialog = panel.querySelector("#preview-dialog");
     const previewTitle = panel.querySelector("#preview-dialog-title");
+    const previewFullscreenBtn = panel.querySelector("[data-preview-fullscreen]");
     const previewFrame = panel.querySelector("[data-preview-frame]");
     const previewImage = panel.querySelector("[data-preview-image]");
     const previewText = panel.querySelector("[data-preview-text]");
@@ -74,8 +75,16 @@
     let previewRevealed = Boolean(
       previewWrap && !previewWrap.classList.contains("hidden")
     );
+    let previewObjectUrl = null;
+
+    const revokePreviewObjectUrl = () => {
+      if (!previewObjectUrl) return;
+      URL.revokeObjectURL(previewObjectUrl);
+      previewObjectUrl = null;
+    };
 
     const clearPreviewSurfaces = () => {
+      revokePreviewObjectUrl();
       if (previewFrame) {
         previewFrame.classList.add("hidden");
         previewFrame.removeAttribute("src");
@@ -95,8 +104,22 @@
       }
     };
 
+    const setPreviewFullscreen = (enabled) => {
+      if (!previewDialog) return;
+      previewDialog.classList.toggle("is-fullscreen", enabled);
+      if (previewFullscreenBtn) {
+        previewFullscreenBtn.setAttribute("aria-pressed", enabled ? "true" : "false");
+        previewFullscreenBtn.setAttribute(
+          "aria-label",
+          enabled ? "Exit full screen" : "Enter full screen"
+        );
+        previewFullscreenBtn.title = enabled ? "Exit full screen" : "Full screen";
+      }
+    };
+
     const closePreview = () => {
       if (!previewDialog) return;
+      setPreviewFullscreen(false);
       if (typeof previewDialog.close === "function" && previewDialog.open) {
         previewDialog.close();
       }
@@ -135,13 +158,23 @@
         }
 
         if ((mode === "pdf" || mode === "html") && previewFrame) {
+          // Fetch → blob URL avoids X-Frame-Options: DENY blocking the modal iframe
+          // on production (site-wide clickjacking protection still applies elsewhere).
+          const response = await fetch(url, {
+            credentials: "same-origin",
+            headers: { Accept: mode === "pdf" ? "application/pdf" : "text/html" },
+          });
+          if (!response.ok) throw new Error("Preview failed");
+          const blob = await response.blob();
+          revokePreviewObjectUrl();
+          previewObjectUrl = URL.createObjectURL(blob);
           previewStatus?.classList.add("hidden");
           if (mode === "html") {
             previewFrame.setAttribute("sandbox", "");
           } else {
             previewFrame.removeAttribute("sandbox");
           }
-          previewFrame.src = url;
+          previewFrame.src = previewObjectUrl;
           previewFrame.classList.remove("hidden");
           return;
         }
@@ -165,11 +198,20 @@
     previewButton?.addEventListener("click", () => {
       openPreview();
     });
+    previewFullscreenBtn?.addEventListener("click", () => {
+      const next = !previewDialog?.classList.contains("is-fullscreen");
+      setPreviewFullscreen(next);
+    });
     panel.querySelectorAll("[data-preview-close]").forEach((node) => {
       node.addEventListener("click", closePreview);
     });
     previewDialog?.addEventListener("cancel", (event) => {
       event.preventDefault();
+      // First Escape exits fullscreen; second closes the modal.
+      if (previewDialog.classList.contains("is-fullscreen")) {
+        setPreviewFullscreen(false);
+        return;
+      }
       closePreview();
     });
     previewDialog?.addEventListener("click", (event) => {

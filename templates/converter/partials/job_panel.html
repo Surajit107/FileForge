@@ -174,11 +174,28 @@
         <p class="preview-dialog__eyebrow">Preview</p>
         <h2 class="preview-dialog__title" id="preview-dialog-title">Converted file</h2>
       </div>
-      <button type="button" class="preview-dialog__close" data-preview-close aria-label="Close preview">
-        <svg class="icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-        </svg>
-      </button>
+      <div class="preview-dialog__actions">
+        <button
+          type="button"
+          class="preview-dialog__action"
+          data-preview-fullscreen
+          aria-pressed="false"
+          aria-label="Enter full screen"
+          title="Full screen"
+        >
+          <svg class="icon icon--expand" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M3.5 7.5V3.5h4M16.5 7.5V3.5h-4M3.5 12.5v4h4M16.5 12.5v4h-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg class="icon icon--compress" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M7.5 3.5v4h-4M12.5 3.5v4h4M7.5 16.5v-4h-4M12.5 16.5v-4h4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button type="button" class="preview-dialog__action" data-preview-close aria-label="Close preview" title="Close">
+          <svg class="icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
     <div class="preview-dialog__body" data-preview-body>
       <iframe
