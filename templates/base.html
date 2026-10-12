@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#18181b">
-  <meta name="description" content="{{ SITE_NAME }} — personal online file converter.">
+  <meta name="description" content="{{ SITE_NAME }} — personal online file converter. {{ PRODUCT_MARK }}.">
   <title>{% block title %}{{ SITE_NAME }}{% endblock %}</title>
   <link rel="icon" href="{% static 'img/favicon.svg' %}" type="image/svg+xml">
   <link rel="icon" href="{% static 'img/favicon.png' %}" type="image/png" sizes="512x512">
@@ -117,6 +117,12 @@
       <p class="mt-1">Jobs stay bound to your browser session — no public file listing.</p>
     </footer>
   </div>
+
+  <p class="product-mark" aria-label="{{ PRODUCT_MARK }}">
+    <span class="product-mark__org">{{ PRODUCT_ORG_NAME }}</span>
+    <span class="product-mark__sep" aria-hidden="true">·</span>
+    <span class="product-mark__label">product</span>
+  </p>
 
   <script src="{% static 'js/vendor/anime.umd.min.js' %}"></script>
   <script src="{% static 'js/intro-splash.js' %}"></script>

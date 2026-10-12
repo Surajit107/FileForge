@@ -61,6 +61,17 @@ def signed_job_download_url(job: ConversionJob) -> str | None:
     return f"{base}?{urlencode({'token': token})}"
 
 
+def signed_job_preview_url(job: ConversionJob) -> str | None:
+    """Inline preview URL for readable targets (PDF / images / HTML / text)."""
+    from apps.converter.services.preview import is_previewable
+
+    if not job.is_downloadable or not is_previewable(job.target_format):
+        return None
+    token = make_download_token("job", str(job.id), expires_at=job.expires_at)
+    base = reverse("converter:preview", kwargs={"job_id": job.id})
+    return f"{base}?{urlencode({'token': token})}"
+
+
 def signed_batch_download_url(batch: ConversionBatch) -> str | None:
     if not batch.is_downloadable:
         return None

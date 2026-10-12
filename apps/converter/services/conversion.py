@@ -20,7 +20,9 @@ from apps.converter.models import ConversionBatch, ConversionJob
 from apps.converter.services.filenames import sanitize_display_name, storage_object_name
 from apps.converter.services.limits import enforce_content_limits
 from apps.converter.services.scan import scan_upload
+from engines.branding import apply_output_branding
 from engines.exceptions import EngineError, UnsupportedConversionError
+from engines.watermark import apply_output_watermark
 from engines.registry import (
     ALLOWED_SOURCE_EXTENSIONS,
     convert_file,
@@ -78,9 +80,7 @@ def _detect_source_format(uploaded: UploadedFile) -> str:
     try:
         sniffed = sniff_format(tmp_path, declared_filename=uploaded.name)
         if sniffed is None:
-            raise InvalidUploadError(
-                "File content does not match a supported type."
-            )
+            raise InvalidUploadError("File content does not match a supported type.")
         if sniffed != declared:
             raise InvalidUploadError(
                 f"File extension suggests {declared}, but content looks like {sniffed}."
@@ -100,6 +100,11 @@ def create_job(
     *,
     owner_session_key: str,
     batch: ConversionBatch | None = None,
+    branding_enabled: bool = False,
+    brand_name: str = "",
+    watermark_enabled: bool = False,
+    watermark_follow_brand: bool = True,
+    watermark_text: str = "",
 ) -> ConversionJob:
     # Byte cap before sniff / archive member enumeration (zip-bomb DoS).
     if uploaded.size > settings.CONVERSION_MAX_UPLOAD_BYTES:
@@ -129,6 +134,13 @@ def create_job(
     )
 
     display_name = sanitize_display_name(uploaded.name or "upload.bin")
+    normalized_brand = " ".join((brand_name or "").split())[:80]
+    normalized_watermark = " ".join((watermark_text or "").split())[:80]
+    follow_brand = bool(watermark_follow_brand)
+    watermark_on = bool(watermark_enabled) and (
+        (follow_brand and bool(normalized_brand))
+        or ((not follow_brand) and bool(normalized_watermark))
+    )
     job = ConversionJob(
         owner_session_key=owner_session_key,
         batch=batch,
@@ -137,6 +149,13 @@ def create_job(
         target_format=target_format,
         status=ConversionJob.Status.PENDING,
         expires_at=expires_at,
+        branding_enabled=bool(branding_enabled and normalized_brand),
+        brand_name=normalized_brand
+        if (branding_enabled or watermark_on) and normalized_brand
+        else "",
+        watermark_enabled=watermark_on,
+        watermark_follow_brand=follow_brand if watermark_on else True,
+        watermark_text="" if not watermark_on or follow_brand else normalized_watermark,
     )
     job.input_file.save(
         storage_object_name(display_name, format_hint=source_format),
@@ -177,6 +196,25 @@ def run_job(job: ConversionJob) -> ConversionJob:
             target=job.target_format,
             destination_path=temp_output,
         )
+        if settings.OUTPUT_BRANDING_ENABLED:
+            if job.branding_enabled and job.brand_name.strip():
+                apply_output_branding(
+                    temp_output,
+                    job.target_format,
+                    job.brand_name.strip(),
+                )
+            if job.watermark_enabled:
+                watermark_label = (
+                    job.brand_name.strip()
+                    if job.watermark_follow_brand
+                    else job.watermark_text.strip()
+                )
+                if watermark_label:
+                    apply_output_watermark(
+                        temp_output,
+                        job.target_format,
+                        watermark_label,
+                    )
         with temp_output.open("rb") as handle:
             job.output_file.save(output_name, File(handle), save=False)
         job.status = ConversionJob.Status.DONE
@@ -189,7 +227,9 @@ def run_job(job: ConversionJob) -> ConversionJob:
                 "updated_at",
             ]
         )
-        logger.info("conversion_job_done job_id=%s output=%s", job.id, job.output_file.name)
+        logger.info(
+            "conversion_job_done job_id=%s output=%s", job.id, job.output_file.name
+        )
     except (EngineError, OSError, ValueError) as exc:
         logger.exception("conversion_job_failed job_id=%s", job.id)
         job.status = ConversionJob.Status.FAILED
@@ -235,11 +275,21 @@ def create_and_run(
     target_format: str,
     *,
     owner_session_key: str,
+    branding_enabled: bool = False,
+    brand_name: str = "",
+    watermark_enabled: bool = False,
+    watermark_follow_brand: bool = True,
+    watermark_text: str = "",
 ) -> ConversionJob:
     job = create_job(
         uploaded,
         target_format,
         owner_session_key=owner_session_key,
+        branding_enabled=branding_enabled,
+        brand_name=brand_name,
+        watermark_enabled=watermark_enabled,
+        watermark_follow_brand=watermark_follow_brand,
+        watermark_text=watermark_text,
     )
     if settings.CONVERSION_SYNC_ENABLED:
         return run_job(job)

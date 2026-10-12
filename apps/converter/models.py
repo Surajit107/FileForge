@@ -102,6 +102,12 @@ class ConversionJob(models.Model):
     )
     input_file = models.FileField(upload_to=upload_to_input)
     output_file = models.FileField(upload_to=upload_to_output, blank=True)
+    branding_enabled = models.BooleanField(default=False)
+    brand_name = models.CharField(max_length=80, blank=True)
+    watermark_enabled = models.BooleanField(default=False)
+    # True = reuse brand_name; False = use watermark_text.
+    watermark_follow_brand = models.BooleanField(default=True)
+    watermark_text = models.CharField(max_length=80, blank=True)
     error_message = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)

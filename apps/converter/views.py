@@ -35,7 +35,13 @@ from apps.converter.services.conversion import (
 from apps.converter.services.downloads import (
     signed_batch_download_url,
     signed_job_download_url,
+    signed_job_preview_url,
     verify_download_token,
+)
+from apps.converter.services.preview import (
+    is_previewable,
+    preview_content_type,
+    preview_mode,
 )
 from apps.converter.services.history import history_page
 from apps.converter.services.rate_limit import (
@@ -88,6 +94,12 @@ def serialize_job(job: ConversionJob) -> dict:
         "status_url": reverse("converter:job_status", kwargs={"job_id": job.id}),
         "detail_url": reverse("converter:job_detail", kwargs={"job_id": job.id}),
         "download_url": signed_job_download_url(job),
+        "preview_url": signed_job_preview_url(job),
+        "preview_mode": (
+            preview_mode(job.target_format)
+            if job.is_downloadable and is_previewable(job.target_format)
+            else None
+        ),
     }
 
 
@@ -119,6 +131,8 @@ def serialize_batch(batch: ConversionBatch) -> dict:
         "status_url": reverse("converter:batch_status", kwargs={"batch_id": batch.id}),
         "detail_url": reverse("converter:batch_detail", kwargs={"batch_id": batch.id}),
         "download_url": signed_batch_download_url(batch),
+        "preview_url": None,
+        "preview_mode": None,
     }
 
 
@@ -145,6 +159,13 @@ def convert_home(request):
             uploads = form.cleaned_data["source_files"]
             target_format = form.cleaned_data["target_format"]
             detected_sources = form.cleaned_data.get("detected_sources") or []
+            branding_enabled = bool(form.cleaned_data.get("branding_enabled"))
+            brand_name = form.cleaned_data.get("brand_name") or ""
+            watermark_enabled = bool(form.cleaned_data.get("watermark_enabled"))
+            watermark_follow_brand = bool(
+                form.cleaned_data.get("watermark_follow_brand", True)
+            )
+            watermark_text = form.cleaned_data.get("watermark_text") or ""
 
             if is_pack_operation(detected_sources, target_format):
                 batch = create_and_run_pack(
@@ -161,6 +182,11 @@ def convert_home(request):
                     uploaded=uploads[0],
                     target_format=target_format,
                     owner_session_key=owner_session_key,
+                    branding_enabled=branding_enabled,
+                    brand_name=brand_name,
+                    watermark_enabled=watermark_enabled,
+                    watermark_follow_brand=watermark_follow_brand,
+                    watermark_text=watermark_text,
                 )
                 payload = serialize_job(job)
                 result_status = job.status
@@ -171,6 +197,11 @@ def convert_home(request):
                     uploads=uploads,
                     target_format=target_format,
                     owner_session_key=owner_session_key,
+                    branding_enabled=branding_enabled,
+                    brand_name=brand_name,
+                    watermark_enabled=watermark_enabled,
+                    watermark_follow_brand=watermark_follow_brand,
+                    watermark_text=watermark_text,
                 )
                 payload = serialize_batch(batch)
                 result_status = batch.status
@@ -239,6 +270,12 @@ def job_detail(request, job_id):
             "job": job,
             "progress": progress_label(job.status),
             "download_url": signed_job_download_url(job),
+            "preview_url": signed_job_preview_url(job),
+            "preview_mode": (
+                preview_mode(job.target_format)
+                if job.is_downloadable and is_previewable(job.target_format)
+                else None
+            ),
         },
     )
 
@@ -271,6 +308,42 @@ def download_result(request, job_id):
         content_type="application/octet-stream",
     )
     response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@require_GET
+def preview_result(request, job_id):
+    """Inline browser preview for readable outputs (not an attachment)."""
+    job = get_owned_job_or_404(request, job_id)
+    _require_download_token(
+        request,
+        kind="job",
+        object_id=job.id,
+        expires_at=job.expires_at,
+    )
+    try:
+        job = get_downloadable_job(job)
+    except ConversionServiceError as exc:
+        raise Http404(str(exc)) from exc
+
+    if not is_previewable(job.target_format):
+        raise Http404("Preview is not available for this format.")
+
+    filename = output_filename(job.original_name, job.target_format)
+    response = FileResponse(
+        job.output_file.open("rb"),
+        as_attachment=False,
+        filename=filename,
+        content_type=preview_content_type(job.target_format),
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Content-Disposition"] = f'inline; filename="{filename}"'
+    # Harden direct HTML navigation; iframe also uses sandbox in the UI.
+    if job.target_format == "html":
+        response["Content-Security-Policy"] = (
+            "default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; "
+            "script-src 'none'; base-uri 'none'; form-action 'none'"
+        )
     return response
 
 
@@ -313,7 +386,9 @@ def batch_download(request, batch_id):
     if batch.jobs.exists():
         extension = "zip"
     else:
-        extension = {"tgz": "tar.gz"}.get(batch.target_format, batch.target_format or "zip")
+        extension = {"tgz": "tar.gz"}.get(
+            batch.target_format, batch.target_format or "zip"
+        )
     filename = f"fileforge-batch-{batch.id}.{extension}"
     response = FileResponse(
         batch.zip_file.open("rb"),

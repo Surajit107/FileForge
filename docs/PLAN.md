@@ -352,8 +352,9 @@ Exit criteria:
 - [x] Audio conversions (`mp3` / `wav` / `flac` / `ogg`, non-identity)
 - [x] Video transcode (`mp4` / `webm` / `mkv`) + extract audio (`→ mp3` / `wav`)
 - [ ] OCR (`image/pdf → searchable text/pdf`)
-- [ ] Watermarking / branding on outputs
+- [x] Optional output branding (user opts in + brand name; PDF/image/HTML/DOCX)
 - [ ] Template-based Markdown themes (corporate PDF skins)
+- [x] Preview converted readable outputs (PDF / images / HTML / text)
 - [ ] Side-by-side preview before download
 - [ ] Collaborative shared conversion links
 - [ ] Plugin SDK so new engines can be added without touching views

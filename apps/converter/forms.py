@@ -63,6 +63,72 @@ class ConversionForm(forms.Form):
             }
         ),
     )
+    add_branding = forms.BooleanField(
+        label="Add branding",
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "branding-option__checkbox",
+                "data-branding-toggle": "1",
+                "role": "switch",
+            }
+        ),
+    )
+    brand_name = forms.CharField(
+        label="Brand name",
+        required=False,
+        max_length=80,
+        widget=forms.TextInput(
+            attrs={
+                "class": "branding-option__input",
+                "placeholder": "e.g. Acme Corp",
+                "autocomplete": "organization",
+                "maxlength": "80",
+                "data-branding-input": "1",
+            }
+        ),
+    )
+    add_watermark = forms.BooleanField(
+        label="Add watermark",
+        required=False,
+        initial=False,
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "branding-option__checkbox",
+                "data-watermark-toggle": "1",
+                "role": "switch",
+            }
+        ),
+    )
+    watermark_source = forms.ChoiceField(
+        label="Watermark text source",
+        required=False,
+        choices=(
+            ("brand", "Use brand name"),
+            ("custom", "Custom text"),
+        ),
+        initial="brand",
+        widget=forms.RadioSelect(
+            attrs={
+                "class": "branding-option__radios",
+                "data-watermark-source": "1",
+            }
+        ),
+    )
+    watermark_text = forms.CharField(
+        label="Watermark text",
+        required=False,
+        max_length=80,
+        widget=forms.TextInput(
+            attrs={
+                "class": "branding-option__input",
+                "placeholder": "e.g. Confidential",
+                "maxlength": "80",
+                "data-watermark-input": "1",
+            }
+        ),
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -122,6 +188,16 @@ class ConversionForm(forms.Form):
         self.cleaned_data["detected_sources"] = detected_sources
         return files
 
+    def clean_brand_name(self):
+        raw = (self.cleaned_data.get("brand_name") or "").strip()
+        # Collapse control / whitespace noise before stamping onto outputs.
+        cleaned = " ".join(raw.split())
+        return cleaned[:80]
+
+    def clean_watermark_text(self):
+        raw = (self.cleaned_data.get("watermark_text") or "").strip()
+        return " ".join(raw.split())[:80]
+
     def clean(self):
         cleaned = super().clean()
         files = cleaned.get("source_file") or []
@@ -142,6 +218,38 @@ class ConversionForm(forms.Form):
                     )
                 self.add_error("target_format", message)
 
+        add_branding = bool(cleaned.get("add_branding"))
+        brand_name = cleaned.get("brand_name") or ""
+        add_watermark = bool(cleaned.get("add_watermark"))
+        watermark_source = cleaned.get("watermark_source") or "brand"
+        watermark_text = cleaned.get("watermark_text") or ""
+        follow_brand = watermark_source == "brand"
+
+        needs_brand_name = add_branding or (add_watermark and follow_brand)
+        if needs_brand_name and not brand_name:
+            self.add_error(
+                "brand_name",
+                "Enter a brand name to use for branding or watermark.",
+            )
+        if not needs_brand_name:
+            cleaned["brand_name"] = ""
+            brand_name = ""
+
+        if add_watermark and not follow_brand and not watermark_text:
+            self.add_error(
+                "watermark_text",
+                "Enter custom watermark text, or choose Use brand name.",
+            )
+        if not add_watermark or follow_brand:
+            cleaned["watermark_text"] = ""
+            watermark_text = ""
+
         cleaned["source_files"] = files
         cleaned["detected_source_format"] = detected_sources[0] if detected_sources else None
+        cleaned["branding_enabled"] = add_branding and bool(brand_name)
+        cleaned["watermark_enabled"] = add_watermark and (
+            (follow_brand and bool(brand_name))
+            or ((not follow_brand) and bool(watermark_text))
+        )
+        cleaned["watermark_follow_brand"] = follow_brand if add_watermark else True
         return cleaned

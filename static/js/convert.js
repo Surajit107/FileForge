@@ -6,10 +6,74 @@
   const pickerRoot = document.querySelector("[data-format-picker]");
   const form = document.getElementById("convert-form");
   const submitBtn = form?.querySelector('button[type="submit"].btn-primary');
+  const brandingToggle = form?.querySelector("[data-branding-toggle]");
+  const brandNameFields = form?.querySelector("[data-brand-name-fields]");
+  const brandingInput = form?.querySelector("[data-branding-input]");
+  const brandNameErrors = document.getElementById("brand-name-errors");
+  const watermarkToggle = form?.querySelector("[data-watermark-toggle]");
+  const watermarkFields = form?.querySelector("[data-watermark-fields]");
+  const watermarkCustom = form?.querySelector("[data-watermark-custom]");
+  const watermarkInput = form?.querySelector("[data-watermark-input]");
+  const watermarkTextErrors = document.getElementById("watermark-text-errors");
+  const watermarkSourceInputs = [
+    ...(form?.querySelectorAll('[data-watermark-source-group] input[type="radio"]') ||
+      []),
+  ];
   const motion = window.FileForgeMotion;
   const canAnimate = Boolean(motion && !motion.reduceMotion);
 
   if (!dropzone || !fileInput) return;
+
+  const watermarkSource = () => {
+    const selected = watermarkSourceInputs.find((input) => input.checked);
+    return selected?.value || "brand";
+  };
+
+  const syncOutputOptionFields = ({ focusBrand = false, focusWatermark = false } = {}) => {
+    const brandingOn = Boolean(brandingToggle?.checked);
+    const watermarkOn = Boolean(watermarkToggle?.checked);
+    const source = watermarkSource();
+    const followBrand = source === "brand";
+    const needsBrandName = brandingOn || (watermarkOn && followBrand);
+    const needsCustomWatermark = watermarkOn && !followBrand;
+
+    brandingToggle?.setAttribute("aria-checked", brandingOn ? "true" : "false");
+    watermarkToggle?.setAttribute("aria-checked", watermarkOn ? "true" : "false");
+
+    if (watermarkFields) watermarkFields.hidden = !watermarkOn;
+    if (watermarkCustom) watermarkCustom.hidden = !needsCustomWatermark;
+    if (brandNameFields) brandNameFields.hidden = !needsBrandName;
+
+    if (brandingInput) {
+      brandingInput.disabled = !needsBrandName;
+      brandingInput.required = needsBrandName;
+      if (needsBrandName && focusBrand) brandingInput.focus();
+    }
+    if (watermarkInput) {
+      watermarkInput.disabled = !needsCustomWatermark;
+      watermarkInput.required = needsCustomWatermark;
+      if (needsCustomWatermark && focusWatermark) watermarkInput.focus();
+    }
+  };
+
+  brandingToggle?.addEventListener("change", () => {
+    syncOutputOptionFields({ focusBrand: true });
+  });
+  watermarkToggle?.addEventListener("change", () => {
+    syncOutputOptionFields({
+      focusBrand: watermarkToggle.checked && watermarkSource() === "brand",
+      focusWatermark: watermarkToggle.checked && watermarkSource() === "custom",
+    });
+  });
+  watermarkSourceInputs.forEach((input) => {
+    input.addEventListener("change", () => {
+      syncOutputOptionFields({
+        focusBrand: input.value === "brand",
+        focusWatermark: input.value === "custom",
+      });
+    });
+  });
+  syncOutputOptionFields();
 
   let dragDepth = 0;
 
@@ -469,6 +533,8 @@
   const clearFormErrors = () => {
     setErrorList(sourceErrors, []);
     setErrorList(targetErrors, []);
+    setErrorList(brandNameErrors, []);
+    setErrorList(watermarkTextErrors, []);
     setErrorList(formErrors, []);
   };
 
@@ -478,6 +544,24 @@
 
     setErrorList(sourceErrors, fieldMessage("source_file"));
     setErrorList(targetErrors, fieldMessage("target_format"));
+    const brandErrors = fieldMessage("brand_name");
+    const watermarkErrors = fieldMessage("watermark_text");
+    setErrorList(brandNameErrors, brandErrors);
+    setErrorList(watermarkTextErrors, watermarkErrors);
+    if (brandErrors.length && brandingToggle) {
+      brandingToggle.checked = true;
+    }
+    if (watermarkErrors.length && watermarkToggle) {
+      watermarkToggle.checked = true;
+      const customRadio = watermarkSourceInputs.find((input) => input.value === "custom");
+      if (customRadio) customRadio.checked = true;
+    }
+    if (brandErrors.length || watermarkErrors.length) {
+      syncOutputOptionFields({
+        focusBrand: Boolean(brandErrors.length),
+        focusWatermark: Boolean(watermarkErrors.length),
+      });
+    }
 
     const nonField = fieldMessage("__all__");
     if (message && !nonField.length) nonField.push(message);

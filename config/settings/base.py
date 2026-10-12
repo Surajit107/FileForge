@@ -25,6 +25,7 @@ env = environ.Env(
     CLAMAV_ENABLED=(bool, False),
     HISTORY_PAGE_SIZE=(int, 10),
     USE_X_FORWARDED_FOR=(bool, False),
+    OUTPUT_BRANDING_ENABLED=(bool, True),
 )
 
 environ.Env.read_env(BASE_DIR / ".env")
@@ -134,6 +135,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # FileForge domain settings
 # ---------------------------------------------------------------------------
 SITE_NAME = env("SITE_NAME", default="FileForge")
+PRODUCT_ORG_NAME = env("PRODUCT_ORG_NAME", default="Asteriq")
+PRODUCT_MARK = env(
+    "PRODUCT_MARK",
+    default=f"An {PRODUCT_ORG_NAME} product",
+)
+# Deploy kill-switch for optional user branding on visual outputs.
+OUTPUT_BRANDING_ENABLED = env("OUTPUT_BRANDING_ENABLED")
 CONVERSION_MAX_UPLOAD_BYTES = env("CONVERSION_MAX_UPLOAD_MB") * 1024 * 1024
 CONVERSION_JOB_TTL = timedelta(hours=env("CONVERSION_JOB_TTL_HOURS"))
 CONVERSION_SYNC_ENABLED = env("CONVERSION_SYNC_ENABLED")
