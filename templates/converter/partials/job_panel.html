@@ -139,6 +139,26 @@
       </a>
     </div>
 
+    <div
+      class="{% if preview_url %}{% else %}hidden{% endif %}"
+      id="job-preview"
+    >
+      <button
+        type="button"
+        class="btn-secondary"
+        id="job-preview-button"
+        data-preview-url="{% if preview_url %}{{ preview_url }}{% endif %}"
+        data-preview-mode="{% if preview_mode %}{{ preview_mode }}{% endif %}"
+        data-preview-name="{% if job %}{{ job.original_name }} → {{ job.target_format|upper }}{% endif %}"
+      >
+        <svg class="icon icon--preview btn-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="2.75" stroke="currentColor" stroke-width="1.75"/>
+        </svg>
+        <span>Preview</span>
+      </button>
+    </div>
+
     <a class="btn-secondary" href="{% url 'converter:home' %}" id="job-convert-another" data-reset-convert>
       Convert another
     </a>
@@ -147,6 +167,31 @@
       History
     </a>
   </div>
+
+  <dialog class="preview-dialog" id="preview-dialog" aria-labelledby="preview-dialog-title">
+    <div class="preview-dialog__chrome">
+      <div class="preview-dialog__heading">
+        <p class="preview-dialog__eyebrow">Preview</p>
+        <h2 class="preview-dialog__title" id="preview-dialog-title">Converted file</h2>
+      </div>
+      <button type="button" class="preview-dialog__close" data-preview-close aria-label="Close preview">
+        <svg class="icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M5 5l10 10M15 5 5 15" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <div class="preview-dialog__body" data-preview-body>
+      <iframe
+        class="preview-dialog__frame hidden"
+        data-preview-frame
+        title="Converted file preview"
+        sandbox=""
+      ></iframe>
+      <img class="preview-dialog__image hidden" data-preview-image alt="Converted image preview">
+      <pre class="preview-dialog__text hidden" data-preview-text></pre>
+      <p class="preview-dialog__status hidden" data-preview-status>Loading preview…</p>
+    </div>
+  </dialog>
 
   <p
     class="alert-error mt-5 {% if batch and batch.error_message or job and job.status == 'failed' %}{% else %}hidden{% endif %}"

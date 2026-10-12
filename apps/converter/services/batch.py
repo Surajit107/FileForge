@@ -36,6 +36,11 @@ def create_batch(
     target_format: str,
     *,
     owner_session_key: str,
+    branding_enabled: bool = False,
+    brand_name: str = "",
+    watermark_enabled: bool = False,
+    watermark_follow_brand: bool = True,
+    watermark_text: str = "",
 ) -> ConversionBatch:
     if not uploads:
         raise InvalidUploadError("Choose at least one file to convert.")
@@ -67,6 +72,11 @@ def create_batch(
                 target_format,
                 owner_session_key=owner_session_key,
                 batch=batch,
+                branding_enabled=branding_enabled,
+                brand_name=brand_name,
+                watermark_enabled=watermark_enabled,
+                watermark_follow_brand=watermark_follow_brand,
+                watermark_text=watermark_text,
             )
     except Exception:
         batch.delete()
@@ -103,11 +113,21 @@ def create_and_run_batch(
     target_format: str,
     *,
     owner_session_key: str,
+    branding_enabled: bool = False,
+    brand_name: str = "",
+    watermark_enabled: bool = False,
+    watermark_follow_brand: bool = True,
+    watermark_text: str = "",
 ) -> ConversionBatch:
     batch = create_batch(
         uploads,
         target_format,
         owner_session_key=owner_session_key,
+        branding_enabled=branding_enabled,
+        brand_name=brand_name,
+        watermark_enabled=watermark_enabled,
+        watermark_follow_brand=watermark_follow_brand,
+        watermark_text=watermark_text,
     )
     if settings.CONVERSION_SYNC_ENABLED:
         return run_batch(batch)

@@ -54,6 +54,14 @@
     const downloadWrap = panel.querySelector("#job-download");
     const downloadLink = panel.querySelector("#job-download-link");
     const downloadLabel = panel.querySelector("#job-download-label");
+    const previewWrap = panel.querySelector("#job-preview");
+    const previewButton = panel.querySelector("#job-preview-button");
+    const previewDialog = panel.querySelector("#preview-dialog");
+    const previewTitle = panel.querySelector("#preview-dialog-title");
+    const previewFrame = panel.querySelector("[data-preview-frame]");
+    const previewImage = panel.querySelector("[data-preview-image]");
+    const previewText = panel.querySelector("[data-preview-text]");
+    const previewStatus = panel.querySelector("[data-preview-status]");
     const filenameEl = panel.querySelector("#job-filename");
     const pairEl = panel.querySelector("#job-pair");
     const expiresEl = panel.querySelector("#job-expires");
@@ -63,6 +71,110 @@
     let downloadRevealed = Boolean(
       downloadWrap && !downloadWrap.classList.contains("hidden")
     );
+    let previewRevealed = Boolean(
+      previewWrap && !previewWrap.classList.contains("hidden")
+    );
+
+    const clearPreviewSurfaces = () => {
+      if (previewFrame) {
+        previewFrame.classList.add("hidden");
+        previewFrame.removeAttribute("src");
+        previewFrame.removeAttribute("sandbox");
+      }
+      if (previewImage) {
+        previewImage.classList.add("hidden");
+        previewImage.removeAttribute("src");
+      }
+      if (previewText) {
+        previewText.classList.add("hidden");
+        previewText.textContent = "";
+      }
+      if (previewStatus) {
+        previewStatus.classList.add("hidden");
+        previewStatus.textContent = "Loading preview…";
+      }
+    };
+
+    const closePreview = () => {
+      if (!previewDialog) return;
+      if (typeof previewDialog.close === "function" && previewDialog.open) {
+        previewDialog.close();
+      }
+      clearPreviewSurfaces();
+    };
+
+    const showPreviewStatus = (message) => {
+      clearPreviewSurfaces();
+      if (!previewStatus) return;
+      previewStatus.textContent = message;
+      previewStatus.classList.remove("hidden");
+    };
+
+    const openPreview = async () => {
+      if (!previewDialog || !previewButton) return;
+      const url = previewButton.dataset.previewUrl || "";
+      const mode = previewButton.dataset.previewMode || "";
+      const name = previewButton.dataset.previewName || "Converted file";
+      if (!url || !mode) return;
+
+      if (previewTitle) previewTitle.textContent = name;
+      clearPreviewSurfaces();
+      showPreviewStatus("Loading preview…");
+      if (typeof previewDialog.showModal === "function") {
+        previewDialog.showModal();
+      } else {
+        previewDialog.setAttribute("open", "");
+      }
+
+      try {
+        if (mode === "image" && previewImage) {
+          previewStatus?.classList.add("hidden");
+          previewImage.src = url;
+          previewImage.classList.remove("hidden");
+          return;
+        }
+
+        if ((mode === "pdf" || mode === "html") && previewFrame) {
+          previewStatus?.classList.add("hidden");
+          if (mode === "html") {
+            previewFrame.setAttribute("sandbox", "");
+          } else {
+            previewFrame.removeAttribute("sandbox");
+          }
+          previewFrame.src = url;
+          previewFrame.classList.remove("hidden");
+          return;
+        }
+
+        if (mode === "text" && previewText) {
+          const response = await fetch(url, { headers: { Accept: "text/plain" } });
+          if (!response.ok) throw new Error("Preview failed");
+          const text = await response.text();
+          previewStatus?.classList.add("hidden");
+          previewText.textContent = text;
+          previewText.classList.remove("hidden");
+          return;
+        }
+
+        showPreviewStatus("Preview is not available for this format.");
+      } catch (_) {
+        showPreviewStatus("Could not load preview. Try downloading the file.");
+      }
+    };
+
+    previewButton?.addEventListener("click", () => {
+      openPreview();
+    });
+    panel.querySelectorAll("[data-preview-close]").forEach((node) => {
+      node.addEventListener("click", closePreview);
+    });
+    previewDialog?.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      closePreview();
+    });
+    previewDialog?.addEventListener("click", (event) => {
+      if (event.target === previewDialog) closePreview();
+    });
 
     const paintSteps = (status) => {
       const order = ["pending", "processing", "done"];
@@ -108,6 +220,14 @@
       if (btn) {
         motion.pulse(btn, { scale: [0.96, 1], duration: 420 });
       }
+    };
+
+    const revealPreview = () => {
+      if (!previewWrap || previewRevealed) return;
+      previewRevealed = true;
+      previewWrap.classList.remove("hidden");
+      if (!canAnimate()) return;
+      motion.settleIn(previewWrap);
     };
 
     const revealError = () => {
@@ -205,6 +325,29 @@
         } else {
           downloadWrap.classList.add("hidden");
           downloadRevealed = false;
+        }
+      }
+
+      if (previewWrap && previewButton) {
+        const canPreview = Boolean(
+          data.kind === "job" &&
+            data.is_downloadable &&
+            data.preview_url &&
+            data.preview_mode
+        );
+        if (canPreview) {
+          previewButton.dataset.previewUrl = data.preview_url;
+          previewButton.dataset.previewMode = data.preview_mode;
+          previewButton.dataset.previewName = `${data.original_name || "File"} → ${(
+            data.target_format || ""
+          ).toUpperCase()}`;
+          revealPreview();
+        } else {
+          previewWrap.classList.add("hidden");
+          previewRevealed = false;
+          previewButton.dataset.previewUrl = "";
+          previewButton.dataset.previewMode = "";
+          closePreview();
         }
       }
 

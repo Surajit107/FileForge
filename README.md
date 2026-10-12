@@ -65,6 +65,17 @@
 Batch upload: select up to **10 files** (same target); download a **ZIP** when done.
 Default upload limit is **100 MB** (`CONVERSION_MAX_UPLOAD_MB`); per-pair caps still apply (docs 25 MB, archives 50 MB, media 100 MB).
 
+### Product features (convert UI)
+
+| Feature | What it does |
+|---------|----------------|
+| **Optional branding** | Toggle on → enter a brand name → stamps it bottom-right on PDF / PNG / JPG / WEBP / HTML / DOCX |
+| **Optional watermark** | Toggle on → **Use brand name** or **Custom text** → diagonal overlay on the same visual formats (size scales with page area) |
+| **Preview** | After a successful single-file job, **Preview** opens a modal for PDF, images, HTML, and text (`txt` / `md` / `csv`). Not available for DOCX, office/archives/media, or batch ZIPs |
+| **Download** | Signed, session-owned download URL (unchanged) |
+
+Branding and watermark are independent: use either, both, or neither. Archives, audio, and video are never stamped (no page corner / overlay surface).
+
 Roadmap: [docs/PLAN.md](docs/PLAN.md)
 
 ---
@@ -310,9 +321,11 @@ Leave the terminal open while the server is running.
 
 1. Open http://127.0.0.1:8000/
 2. Drop or browse a file (Markdown example: `samples/Pronti_Deed_Exit_Risk_Table.md`, or any PNG/JPG/WEBP/GIF/BMP). Multi-select up to 10 files for a ZIP batch.
-3. Select **PDF** or **DOCX**
-4. Click **Convert**
-5. On the job page, click **Download**
+3. Select an output format (e.g. **PDF**, **PNG**, **HTML**).
+4. *(Optional)* **Add branding** — enter a brand name for a bottom-right corner mark.
+5. *(Optional)* **Add watermark** — choose **Use brand name** or **Custom text** for a diagonal overlay.
+6. Click **Convert**.
+7. On the result panel: **Preview** (when the target is readable in-browser), then **Download**.
 
 ### 2.3.1 Frontend CSS (Tailwind)
 
@@ -421,6 +434,8 @@ Config keys: see `.env.example` only.
 │   └── asgi.py
 ├── engines/               # conversion logic (no Django views)
 │   ├── registry.py
+│   ├── branding.py        # optional corner brand stamp
+│   ├── watermark.py       # optional diagonal watermark
 │   └── markdown/
 ├── docs/
 ├── samples/

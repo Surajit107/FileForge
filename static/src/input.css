@@ -160,6 +160,24 @@
     @apply text-ember;
   }
 
+  .product-mark {
+    @apply pointer-events-none fixed z-40 m-0 inline-flex items-center gap-1.5 font-display text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-mist/70;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .product-mark__org {
+    @apply text-ink-soft/80;
+  }
+
+  .product-mark__sep {
+    @apply text-mist/40;
+  }
+
+  .product-mark__label {
+    @apply font-sans normal-case tracking-wide text-mist/55;
+  }
+
   .convert-layout {
     @apply grid gap-5 sm:gap-6;
     grid-template-columns: minmax(0, 1fr);
@@ -1357,12 +1375,199 @@
     @apply justify-center px-2 py-2 sm:justify-start;
   }
 
+  .preview-dialog {
+    @apply m-auto w-[min(96vw,56rem)] max-h-[min(90vh,48rem)] overflow-hidden rounded-2xl border border-line bg-panel p-0 text-ink shadow-panel;
+    background: var(--color-panel);
+  }
+
+  .preview-dialog::backdrop {
+    background: rgb(0 0 0 / 0.72);
+    backdrop-filter: blur(6px);
+  }
+
+  .preview-dialog__chrome {
+    @apply flex items-start justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5;
+  }
+
+  .preview-dialog__heading {
+    @apply grid min-w-0 gap-0.5;
+  }
+
+  .preview-dialog__eyebrow {
+    @apply m-0 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-mist;
+  }
+
+  .preview-dialog__title {
+    @apply m-0 truncate font-display text-lg font-bold tracking-tight text-ink sm:text-xl;
+  }
+
+  .preview-dialog__close {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-panel-raised text-mist transition-colors;
+  }
+
+  .preview-dialog__close:hover {
+    @apply border-mist/50 text-ink;
+  }
+
+  .preview-dialog__close:focus-visible {
+    @apply outline-2 outline-offset-2 outline-ember;
+  }
+
+  .preview-dialog__close .icon {
+    @apply h-4 w-4;
+  }
+
+  .preview-dialog__body {
+    @apply relative grid min-h-[16rem] place-items-center overflow-auto bg-paper p-3 sm:min-h-[22rem] sm:p-4;
+  }
+
+  .preview-dialog__frame {
+    @apply h-[min(70vh,36rem)] w-full rounded-xl border border-line bg-ink;
+  }
+
+  .preview-dialog__image {
+    @apply max-h-[min(70vh,36rem)] max-w-full rounded-xl object-contain;
+  }
+
+  .preview-dialog__text {
+    @apply m-0 max-h-[min(70vh,36rem)] w-full overflow-auto whitespace-pre-wrap break-words rounded-xl border border-line bg-panel-raised p-4 font-mono text-xs leading-relaxed text-ink-soft sm:text-sm;
+  }
+
+  .preview-dialog__status {
+    @apply m-0 text-sm font-medium text-mist;
+  }
+
   .convert-actions {
     @apply grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end;
   }
 
   .convert-actions .btn-primary {
     @apply w-full min-h-[3.25rem] md:min-w-[11.5rem];
+  }
+
+  .output-options {
+    @apply grid gap-3;
+  }
+
+  .branding-option {
+    @apply m-0 grid gap-3 rounded-2xl border border-line bg-panel-raised/60 p-3.5 sm:p-4;
+  }
+
+  .branding-option__toggle {
+    @apply flex cursor-pointer items-center justify-between gap-4;
+  }
+
+  .branding-option__copy {
+    @apply grid min-w-0 flex-1 gap-0.5;
+  }
+
+  .branding-option__title {
+    @apply text-sm font-semibold text-ink;
+  }
+
+  .branding-option__hint {
+    @apply text-xs leading-relaxed text-mist sm:text-sm;
+  }
+
+  .branding-option__switch {
+    @apply relative inline-flex h-6 w-11 shrink-0 items-center;
+  }
+
+  .branding-option__checkbox {
+    @apply sr-only;
+  }
+
+  .branding-option__track {
+    @apply relative block h-6 w-11 rounded-full border border-line bg-paper transition-[background-color,border-color] duration-200;
+    box-sizing: border-box;
+  }
+
+  .branding-option__track::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    width: 1.125rem; /* 18px — equal gap top/bottom inside 24px track */
+    height: 1.125rem;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--color-mist) 85%, white);
+    transform: translateY(-50%);
+    transition: transform 200ms ease-out, background-color 200ms ease-out;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.4);
+  }
+
+  .branding-option__checkbox:checked + .branding-option__track {
+    @apply border-ember/50 bg-ember;
+  }
+
+  .branding-option__checkbox:checked + .branding-option__track::after {
+    /* 44px track − 2px borders − 2px left inset − 18px thumb − 2px right inset = 20px */
+    background: var(--color-cta-ink);
+    transform: translate(1.25rem, -50%);
+  }
+
+  .branding-option__checkbox:focus-visible + .branding-option__track {
+    @apply outline-2 outline-offset-2 outline-ember;
+  }
+
+  .branding-option__toggle:hover .branding-option__track {
+    @apply border-mist/50;
+  }
+
+  .branding-option__toggle:hover .branding-option__checkbox:checked + .branding-option__track {
+    @apply border-ember/65 bg-ember-deep;
+  }
+
+  .branding-option__fields {
+    @apply grid gap-2 border-t border-line pt-3;
+  }
+
+  .branding-option__name-label {
+    @apply text-sm font-semibold text-ink-soft;
+  }
+
+  .branding-option__source {
+    @apply grid gap-2 sm:grid-cols-2;
+  }
+
+  .branding-option__source-option {
+    @apply flex cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-paper px-3 py-2.5 text-sm text-ink-soft transition-colors;
+  }
+
+  .branding-option__source-option:hover {
+    @apply border-mist/45 text-ink;
+  }
+
+  .branding-option__source-option:has(input:checked) {
+    @apply border-ember/45 text-ink;
+    box-shadow: 0 0 0 3px rgb(251 191 36 / 0.1);
+  }
+
+  .branding-option__source-option input {
+    @apply h-4 w-4 shrink-0 accent-ember;
+  }
+
+  .branding-option__custom {
+    @apply grid gap-2;
+  }
+
+  .branding-option__input {
+    @apply w-full rounded-xl border border-line bg-paper px-3 py-2.5 text-sm text-ink outline-none transition-colors;
+  }
+
+  .branding-option__input::placeholder {
+    color: var(--color-mist);
+  }
+
+  .branding-option__input:focus {
+    @apply border-mist/60;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .branding-option__track,
+    .branding-option__track::after {
+      transition: none;
+    }
   }
 
   .dropzone__icon {

@@ -384,8 +384,12 @@ def add_page_decorations(canvas, doc, footer_text: str) -> None:
     canvas.rect(0, page_h - 8, page_w, 8, fill=1, stroke=0)
     canvas.setFillColor(MUTED)
     canvas.setFont("Helvetica", 8)
-    canvas.drawString(18 * mm, 10 * mm, footer_text[:80])
-    canvas.drawRightString(page_w - 18 * mm, 10 * mm, f"Page {doc.page}")
+    # Keep left footer for title + page; bottom-right is reserved for Asteriq stamp.
+    canvas.drawString(
+        18 * mm,
+        10 * mm,
+        f"{footer_text[:60]}  ·  Page {doc.page}",
+    )
     canvas.restoreState()
 
 
@@ -415,7 +419,8 @@ def build_pdf(document: MarkdownDocument, out_path: Path) -> Path:
         topMargin=top,
         bottomMargin=bottom,
         title=document.title,
-        author="Markdown Converter",
+        author="Asteriq",
+        creator="FileForge — an Asteriq product",
     )
 
     story: list[object] = []
